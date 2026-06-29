@@ -573,6 +573,12 @@ function setDeckFolder(deckId,folderId){
   const d=FDECKS.find(x=>x.id===deckId);if(!d)return;
   d.folderId=folderId||null;persistFDecks();renderFlash();
 }
+let _dragDeck=null;
+function fcDrag(ev,id){_dragDeck=id;ev.dataTransfer.effectAllowed='move';try{ev.dataTransfer.setData('text/plain',id);}catch(e){}ev.currentTarget.classList.add('dragging');}
+function fcDragEnd(ev){_dragDeck=null;ev.currentTarget.classList.remove('dragging');document.querySelectorAll('.ntag.drop-on').forEach(n=>n.classList.remove('drop-on'));}
+function fcOver(ev,el){if(!_dragDeck)return;ev.preventDefault();ev.dataTransfer.dropEffect='move';el.classList.add('drop-on');}
+function fcLeave(el){el.classList.remove('drop-on');}
+function fcDrop(ev,folderId){ev.preventDefault();const id=_dragDeck||(ev.dataTransfer&&ev.dataTransfer.getData('text/plain'));document.querySelectorAll('.ntag.drop-on').forEach(n=>n.classList.remove('drop-on'));if(!id)return;_dragDeck=null;setDeckFolder(id,folderId);}
 function curFolderId(){return(activeFolder!=='all'&&activeFolder!=='none')?activeFolder:null;}
 function folderName(id){const f=FFOLDERS.find(x=>x.id===id);return f?f.name:'';}
 function renderFlash(){
@@ -591,8 +597,8 @@ function renderFDeckGrid(root){
   const chips=`
     <div class="fc-folders">
       <span class="ntag ${activeFolder==='all'?'on':''}" onclick="setFolder('all')">Todos · ${FDECKS.length}</span>
-      ${FFOLDERS.map(f=>`<span class="ntag ${activeFolder===f.id?'on':''}" onclick="setFolder('${f.id}')"><span class="emo">📁</span> ${esc(f.name)} · ${cnt(f.id)}</span>`).join('')}
-      <span class="ntag ${activeFolder==='none'?'on':''}" onclick="setFolder('none')">Sem pasta · ${FDECKS.filter(d=>!d.folderId).length}</span>
+      ${FFOLDERS.map(f=>`<span class="ntag ${activeFolder===f.id?'on':''}" onclick="setFolder('${f.id}')" ondragover="fcOver(event,this)" ondragleave="fcLeave(this)" ondrop="fcDrop(event,'${f.id}')"><span class="emo">📁</span> ${esc(f.name)} · ${cnt(f.id)}</span>`).join('')}
+      <span class="ntag ${activeFolder==='none'?'on':''}" onclick="setFolder('none')" ondragover="fcOver(event,this)" ondragleave="fcLeave(this)" ondrop="fcDrop(event,'')">Sem pasta · ${FDECKS.filter(d=>!d.folderId).length}</span>
       <span class="ntag add-folder" onclick="newFolder()">+ Nova pasta</span>
       ${(activeFolder!=='all'&&activeFolder!=='none')?`
         <span class="ntag mini-act" onclick="renameFolder('${activeFolder}')"><svg class="ic"><use href="#ic-note"/></svg></span>
@@ -610,7 +616,7 @@ function renderFDeckGrid(root){
     ${chips}
     <div class="fc-decks">
       ${decks.map(d=>`
-        <div class="fcd glass" onclick="openFDeck('${d.id}')">
+        <div class="fcd glass" draggable="true" ondragstart="fcDrag(event,'${d.id}')" ondragend="fcDragEnd(event)" onclick="openFDeck('${d.id}')">
           <span class="em emo">${d.e}</span>
           <h4>${esc(d.title)}</h4>
           <div class="meta">${d.cards.length} cards${d.folderId?` · <span class="emo">📁</span> ${esc(folderName(d.folderId))}`:''}</div>
