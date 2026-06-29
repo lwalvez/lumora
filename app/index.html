@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumora — App</title>
-<link rel="stylesheet" href="css/style.css?v=22">
-<script src="js/icons.js?v=22"></script>
+<link rel="stylesheet" href="css/style.css?v=23">
+<script src="js/icons.js?v=23"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js?v=22"></script>
+<script src="js/supabase.js?v=23"></script>
 <style>
   body{display:flex;min-height:100vh}
   /* Sidebar */
@@ -87,7 +87,7 @@
   .session{max-width:640px;margin:10px auto}
   .session:has(.done-wrap),.session:has(.match-grid),.session:has(#test-body){max-width:920px}
   /* card maior + centralizado verticalmente (só quando há flashcard) */
-  .session:has(.flashcard){max-width:720px}
+  .session:has(.flashcard){max-width:840px}
   #view-study.active:has(.flashcard){display:flex;align-items:center;justify-content:center;min-height:calc(100dvh - 64px)}
   #view-study.active:has(.flashcard) .session{margin:0;width:100%}
   /* tela cheia */
@@ -96,7 +96,7 @@
     radial-gradient(60vw 50vh at 20% 0%,rgba(124,92,255,.16),transparent 60%),
     radial-gradient(50vw 50vh at 100% 100%,rgba(70,214,255,.14),transparent 60%)}
   #view-study:fullscreen .session{max-width:760px;width:90vw;margin:0;position:relative;z-index:1}
-  #view-study:fullscreen .flashcard{height:min(58vh,520px)}
+  #view-study:fullscreen .flashcard{height:min(66vh,620px)}
   #view-study:fullscreen .fc-face .q{font-size:clamp(26px,3.4vw,40px)}
   #view-study:fullscreen .fc-face .a{font-size:clamp(20px,2.4vw,28px)}
   .sess-top{display:flex;align-items:center;gap:14px;margin-bottom:26px}
@@ -104,17 +104,17 @@
   .sess-top .x{cursor:pointer;color:var(--muted);display:grid;place-items:center;width:34px;height:34px;border-radius:50%}
   .sess-top .x:hover{background:var(--surface-2)}
   .sess-top .x svg{width:18px;height:18px}
-  .flashcard{perspective:2000px;height:clamp(380px,54vh,520px);margin-bottom:22px;cursor:pointer;will-change:transform,opacity}
+  .flashcard{perspective:2000px;height:clamp(450px,64vh,620px);margin-bottom:22px;cursor:pointer;will-change:transform,opacity}
   /* flip dirigido por JS (Web Animations API) — transform-style mantém o 3D */
   .fc-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;will-change:transform}
   .fc-face{transition:box-shadow .5s var(--ease)}
   .flashcard.flip .fc-face{box-shadow:var(--shadow-lg),0 0 0 1px rgba(255,255,255,.05)}
   .fc-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:var(--r-2xl);
-    display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:42px;
+    display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:52px;
     box-shadow:var(--shadow-lg),var(--glow)}
   .fc-back{transform:rotateY(180deg)}
-  .fc-face .q{font-size:clamp(25px,2.6vw,33px);font-weight:700;line-height:1.32}
-  .fc-face .a{font-size:clamp(19px,2vw,25px);line-height:1.55;color:var(--text-2)}
+  .fc-face .q{font-size:clamp(28px,3vw,38px);font-weight:700;line-height:1.3}
+  .fc-face .a{font-size:clamp(21px,2.3vw,28px);line-height:1.5;color:var(--text-2)}
   .fc-face .lbl{font-size:11.5px;font-weight:600;color:var(--primary);text-transform:uppercase;letter-spacing:.08em;margin-bottom:18px}
   .fc-src{margin-top:20px;font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
   .fc-src svg{width:14px;height:14px}
@@ -499,6 +499,6 @@
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
 </nav>
 
-<script src="js/app.js?v=22"></script>
+<script src="js/app.js?v=23"></script>
 </body>
 </html>
