@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Entrar · Lumora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.22);
+    --glass-highlight: rgba(255, 255, 255, 0.55);
+    --text: #f4f6fb;
+    --text-dim: rgba(244, 246, 251, 0.62);
+    --accent: #6ea8ff;
+    --accent-2: #b07bff;
+    --radius: 28px;
+    --field-radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    background: #0a0a12;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---- Animated ambient background ---- */
+  .scene {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.7;
+    will-change: transform;
+  }
+  .blob.b1 { width: 46vw; height: 46vw; background: #5564ff; top: -10%; left: -8%; animation: drift1 18s ease-in-out infinite; }
+  .blob.b2 { width: 40vw; height: 40vw; background: #ff5fa2; bottom: -14%; right: -6%; animation: drift2 22s ease-in-out infinite; }
+  .blob.b3 { width: 34vw; height: 34vw; background: #34e0d4; top: 40%; left: 45%; animation: drift3 26s ease-in-out infinite; }
+
+  @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8vw,6vh) scale(1.15); } }
+  @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-7vw,-5vh) scale(1.1); } }
+  @keyframes drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-6vw,4vh) scale(1.2); } }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---- Glass card ---- */
+  .card {
+    position: relative;
+    z-index: 2;
+    width: min(92vw, 400px);
+    padding: 40px 34px 34px;
+    border-radius: var(--radius);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 var(--glass-highlight),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    transition: transform 0.18s ease;
+  }
+  /* specular sheen following pointer */
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      420px circle at var(--mx, 50%) var(--my, 0%),
+      rgba(255, 255, 255, 0.18),
+      transparent 60%
+    );
+    pointer-events: none;
+    transition: background 0.1s;
+  }
+  /* top edge light refraction */
+  .card::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 8%;
+    width: 84%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+    pointer-events: none;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .brand .mark {
+    width: 42px; height: 42px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 6px 18px rgba(110,168,255,0.45), inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .brand .mark svg { width: 22px; height: 22px; }
+  .brand h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand p { font-size: 12px; color: var(--text-dim); }
+
+  .head { margin-bottom: 24px; }
+  .head h2 { font-size: 25px; font-weight: 700; letter-spacing: -0.02em; }
+  .head span { font-size: 14px; color: var(--text-dim); display: block; margin-top: 5px; }
+
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-bottom: 7px;
+    padding-left: 4px;
+  }
+  .input-wrap { position: relative; }
+  .input-wrap .icon {
+    position: absolute;
+    left: 15px; top: 50%;
+    transform: translateY(-50%);
+    width: 18px; height: 18px;
+    color: var(--text-dim);
+    pointer-events: none;
+  }
+  .field input {
+    width: 100%;
+    padding: 14px 16px 14px 44px;
+    font: inherit;
+    font-size: 14.5px;
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--field-radius);
+    outline: none;
+    transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+  }
+  .field input::placeholder { color: rgba(244,246,251,0.35); }
+  .field input:focus {
+    border-color: rgba(110, 168, 255, 0.7);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 0 4px rgba(110, 168, 255, 0.16);
+  }
+  .toggle-pw {
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 6px;
+    display: grid; place-items: center;
+    border-radius: 8px;
+  }
+  .toggle-pw:hover { color: var(--text); }
+  .toggle-pw svg { width: 18px; height: 18px; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 6px 2px 22px;
+    font-size: 13px;
+  }
+  .remember { display: flex; align-items: center; gap: 8px; color: var(--text-dim); cursor: pointer; user-select: none; }
+  .remember input { display: none; }
+  .remember .box {
+    width: 18px; height: 18px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.05);
+    display: grid; place-items: center;
+    transition: all 0.15s;
+  }
+  .remember .box svg { width: 12px; height: 12px; opacity: 0; transform: scale(0.6); transition: all 0.15s; }
+  .remember input:checked + .box {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-color: transparent;
+  }
+  .remember input:checked + .box svg { opacity: 1; transform: scale(1); }
+  .row a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  .row a:hover { text-decoration: underline; }
+
+  .btn {
+    width: 100%;
+    padding: 15px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: var(--field-radius);
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 10px 26px rgba(110,168,255,0.4), inset 0 1px 0 rgba(255,255,255,0.5);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.12s, box-shadow 0.2s;
+  }
+  .btn:hover { box-shadow: 0 14px 34px rgba(110,168,255,0.55), inset 0 1px 0 rgba(255,255,255,0.5); }
+  .btn:active { transform: scale(0.98); }
+  .btn .spinner {
+    display: none;
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto;
+  }
+  .btn.loading span { visibility: hidden; }
+  .btn.loading .spinner { display: block; position: absolute; inset: 0; margin: auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .divider {
+    display: flex; align-items: center; gap: 14px;
+    margin: 22px 0;
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+  .divider::before, .divider::after {
+    content: ""; flex: 1; height: 1px;
+    background: rgba(255,255,255,0.14);
+  }
+
+  .socials { display: flex; gap: 12px; }
+  .social {
+    flex: 1;
+    padding: 12px;
+    display: grid; place-items: center;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: var(--field-radius);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.12s;
+  }
+  .social:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); }
+  .social:active { transform: scale(0.96); }
+  .social svg { width: 20px; height: 20px; }
+
+  .signup { text-align: center; margin-top: 24px; font-size: 13.5px; color: var(--text-dim); }
+  .signup a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .signup a:hover { text-decoration: underline; }
+
+  @media (max-width: 420px) {
+    .card { padding: 32px 24px 28px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .blob { animation: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="scene" aria-hidden="true">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+  </div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <main class="card" id="card">
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l3 6 6 .9-4.5 4.3 1.1 6.3L12 16.8 6.4 19.5l1.1-6.3L3 8.9 9 8z"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Lumora</h1>
+        <p>Aprenda mais rápido</p>
+      </div>
+    </div>
+
+    <div class="head">
+      <h2>Bem-vindo de volta</h2>
+      <span>Entre na sua conta para continuar</span>
+    </div>
+
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="email">E-mail</label>
+        <div class="input-wrap">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="3"/><path d="m2 7 10 6 10-6"/>
+          </svg>
+          <input type="email" id="email" name="email" placeholder="voce@empresa.com" autocomplete="email" required />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="password">Senha</label>
+        <div class="input-wrap">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+          </svg>
+          <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required />
+          <button type="button" class="toggle-pw" id="togglePw" aria-label="Mostrar senha">
+            <svg id="eyeOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg id="eyeOff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+              <path d="M9.9 4.2A10.9 10.9 0 0 1 12 4c6 0 10 8 10 8a18 18 0 0 1-2.6 3.5M6.6 6.6A18 18 0 0 0 2 12s4 8 10 8a10.9 10.9 0 0 0 4.1-.8"/><path d="m2 2 20 20"/><path d="M9.5 9.5a3 3 0 0 0 4.2 4.2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="row">
+        <label class="remember">
+          <input type="checkbox" id="remember" />
+          <span class="box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </span>
+          Lembrar de mim
+        </label>
+        <a href="#">Esqueceu a senha?</a>
+      </div>
+
+      <button type="submit" class="btn" id="submitBtn">
+        <span>Entrar</span>
+        <div class="spinner"></div>
+      </button>
+    </form>
+
+    <div class="divider">ou continue com</div>
+
+    <div class="socials">
+      <button class="social" type="button" aria-label="Entrar com Google">
+        <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-2 3.2-4.9 3.2-7.8Z"/><path fill="#34A853" d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.2 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8L6 14.3Z"/><path fill="#EA4335" d="M12 5.5c1.6 0 3 .6 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3L6 10.1c.9-2.6 3.2-4.6 6-4.6Z"/></svg>
+      </button>
+      <button class="social" type="button" aria-label="Entrar com Apple">
+        <svg viewBox="0 0 24 24" fill="#fff"><path d="M17.05 12.5c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.15-2.8.85-3.5.85-.7 0-1.85-.83-3-.8-1.55.02-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.77 1.1 1.7 2.4 2.9 2.35 1.15-.05 1.6-.75 3-.75s1.8.75 3 .73c1.25-.02 2-1.13 2.77-2.25.87-1.3 1.23-2.55 1.25-2.6-.03-.02-2.4-.92-2.42-3.6ZM14.8 5.3c.63-.78 1.06-1.85.94-2.92-.9.04-2 .6-2.66 1.37-.58.68-1.1 1.78-.96 2.82 1 .08 2.03-.5 2.68-1.27Z"/></svg>
+      </button>
+      <button class="social" type="button" aria-label="Entrar com GitHub">
+        <svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2A10 10 0 0 0 8.8 21.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.2-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.8-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10 10 0 0 0 12 2Z"/></svg>
+      </button>
+    </div>
+
+    <p class="signup">Não tem conta? <a href="#">Criar agora</a></p>
+  </main>
+
+<script>
+  // Pointer-driven specular sheen
+  const card = document.getElementById('card');
+  card.addEventListener('pointermove', (e) => {
+    const r = card.getBoundingClientRect();
+    card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+    card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+  });
+  card.addEventListener('pointerleave', () => {
+    card.style.setProperty('--mx', '50%');
+    card.style.setProperty('--my', '0%');
+  });
+
+  // Password visibility toggle
+  const pw = document.getElementById('password');
+  const togglePw = document.getElementById('togglePw');
+  const eyeOpen = document.getElementById('eyeOpen');
+  const eyeOff = document.getElementById('eyeOff');
+  togglePw.addEventListener('click', () => {
+    const show = pw.type === 'password';
+    pw.type = show ? 'text' : 'password';
+    eyeOpen.style.display = show ? 'none' : 'block';
+    eyeOff.style.display = show ? 'block' : 'none';
+  });
+
+  // ---- Supabase auth ----
+  const SUPA_URL = 'https://qnhfpivbsvfkmahxrnnu.supabase.co';
+  const SUPA_KEY = 'sb_publishable_16O_A7uBIiNryBMTclWKVA_kmvhtnKV';
+  const LUMORA_APP = 'app/index.html';
+  const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+  function enterLumora(){ window.location.href = LUMORA_APP; }
+
+  // já logado? entra direto
+  sb.auth.getSession().then(({data:{session}})=>{ if(session) enterLumora(); });
+
+  const form = document.getElementById('form');
+  const btn = document.getElementById('submitBtn');
+  const emailEl = document.getElementById('email');
+  const pwEl = document.getElementById('password');
+
+  function setLoading(on){ btn.classList.toggle('loading',on); btn.disabled=on; }
+  function flash(msg){
+    let n=document.getElementById('msg');
+    if(!n){n=document.createElement('p');n.id='msg';n.style.cssText='margin-top:14px;font-size:13px;text-align:center;color:#ff9bb0';form.appendChild(n);}
+    n.textContent=msg;
+  }
+
+  // Entrar
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    setLoading(true);
+    const { error } = await sb.auth.signInWithPassword({ email: emailEl.value.trim(), password: pwEl.value });
+    setLoading(false);
+    if (error) { flash(error.message==='Invalid login credentials' ? 'E-mail ou senha incorretos. Use “Criar agora” se não tem conta.' : error.message); return; }
+    enterLumora();
+  });
+
+  // Criar conta
+  document.querySelectorAll('.signup a').forEach(a => a.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if(!emailEl.value.trim()||pwEl.value.length<6){ flash('Preencha e-mail e senha (mín. 6 caracteres) e clique em Criar agora.'); return; }
+    setLoading(true);
+    const { data, error } = await sb.auth.signUp({ email: emailEl.value.trim(), password: pwEl.value });
+    setLoading(false);
+    if (error) { flash(error.message); return; }
+    if (data.session) enterLumora();
+    else flash('Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre.');
+  }));
+
+  // Social (OAuth precisa estar configurado no Supabase; não funciona via file://)
+  document.querySelectorAll('.social').forEach(b => b.addEventListener('click', () =>
+    flash('Login social precisa ser configurado no painel Supabase. Use e-mail e senha.')));
+</script>
+</body>
+</html>
