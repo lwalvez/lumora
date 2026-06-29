@@ -104,29 +104,17 @@ function renderCard(){
     </div>`;
   animateCardIn();syncFsIcon();
 }
-// transição de cards via Web Animations API (imune a CSS !important / sempre re-dispara)
+// troca de card SEM delay: renderiza na hora; entrada curta e não-bloqueante
 let sBusy=false;
 function animateCardIn(){
   const fc=document.getElementById('fc'); if(!fc||!fc.animate)return;
-  const x=cardDir==='prev'?-34:34;
+  const x=cardDir==='prev'?-22:22;
   fc.animate(
-    [{opacity:0,transform:`translateX(${x}px) scale(.97)`},{opacity:1,transform:'none'}],
-    {duration:200,easing:'cubic-bezier(.16,.84,.44,1)',fill:'both'}
+    [{opacity:.45,transform:`translateX(${x}px)`},{opacity:1,transform:'none'}],
+    {duration:120,easing:'cubic-bezier(.16,.84,.44,1)',fill:'both'}
   );
 }
-// anima o card atual saindo (rápido), libera input e renderiza o próximo
-function leaveThen(cb){
-  if(sBusy)return;
-  const fc=document.getElementById('fc');
-  if(!fc||!fc.animate){cb();return;}
-  sBusy=true;
-  const x=cardDir==='prev'?40:-40;
-  const a=fc.animate(
-    [{opacity:1,transform:'none'},{opacity:0,transform:`translateX(${x}px) scale(.97)`}],
-    {duration:90,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}
-  );
-  a.onfinish=()=>{cb();sBusy=false;};
-}
+function leaveThen(cb){cb();} // sem saída — instantâneo
 // tela cheia da sessão de estudo
 function toggleFs(){
   const el=document.getElementById('view-study');
