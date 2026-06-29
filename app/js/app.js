@@ -58,12 +58,12 @@ function renderDecks(){
 }
 
 // ---- study session ----
-let sIdx=0,sFlip=false,STUDY_CARDS=CARDS,SESSION_LEN=5,studyBack='today',sResults=[];
+let sIdx=0,sFlip=false,STUDY_CARDS=CARDS,SESSION_LEN=5,studyBack='today',sResults=[],cardDir='next';
 function startSession(cards,back){
   STUDY_CARDS=(cards&&cards.length)?cards:CARDS;
   SESSION_LEN=cards&&cards.length?cards.length:5;
   studyBack=back||'today';
-  sResults=[];sIdx=0;renderCard();
+  sResults=[];sIdx=0;cardDir='next';renderCard();
 }
 function renderCard(){
   const el=document.getElementById('session');
@@ -77,7 +77,7 @@ function renderCard(){
       <div class="bar"><i style="width:${pct}%"></i></div>
       <span class="muted" style="font-size:14px">${sIdx+1}/${SESSION_LEN}</span>
     </div>
-    <div class="flashcard" id="fc" onclick="flip()">
+    <div class="flashcard in-${cardDir}" id="fc" onclick="flip()">
       <div class="fc-inner">
         <div class="fc-face glass">
           <div class="lbl">${c.bloom} · Active Recall</div>
@@ -106,11 +106,11 @@ function flip(){
   sFlip=!sFlip;
   document.getElementById('fc').classList.toggle('flip',sFlip);
 }
-function grade(i){sResults[sIdx]=(i===1);sIdx++;renderCard();}
+function grade(i){sResults[sIdx]=(i===1);cardDir='next';sIdx++;renderCard();}
 function redoWrong(){const w=STUDY_CARDS.filter((c,i)=>sResults[i]===false);startSession(w,studyBack);}
 function redoAll(){startSession(STUDY_CARDS,studyBack);}
-function nextCard(){sIdx++;renderCard();}
-function prevCard(){if(sIdx>0){sIdx--;renderCard();}}
+function nextCard(){cardDir='next';sIdx++;renderCard();}
+function prevCard(){if(sIdx>0){cardDir='prev';sIdx--;renderCard();}}
 // keyboard controls (only in study view)
 document.addEventListener('keydown',e=>{
   const v=document.getElementById('view-study');
