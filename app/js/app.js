@@ -63,7 +63,7 @@ function startSession(cards,back){
   STUDY_CARDS=(cards&&cards.length)?cards:CARDS;
   SESSION_LEN=cards&&cards.length?cards.length:5;
   studyBack=back||'today';
-  sResults=[];sIdx=0;cardDir='next';renderCard();
+  sResults=[];sIdx=0;cardDir='next';sBusy=false;renderCard();
 }
 function renderCard(){
   const el=document.getElementById('session');
@@ -103,14 +103,31 @@ function renderCard(){
     </div>`;
   animateCardIn();
 }
-// entrada do card via Web Animations API (imune a CSS !important / sempre re-dispara)
+// transição de cards via Web Animations API (imune a CSS !important / sempre re-dispara)
+let sBusy=false;
 function animateCardIn(){
-  const fc=document.getElementById('fc'); if(!fc||!fc.animate)return;
-  const x=cardDir==='prev'?-48:48;
-  fc.animate(
-    [{opacity:0,transform:`translateX(${x}px) scale(.94)`},{opacity:0.6,offset:.5},{opacity:1,transform:'none'}],
-    {duration:480,easing:'cubic-bezier(.22,.61,.36,1)',fill:'both'}
+  const fc=document.getElementById('fc'); if(!fc||!fc.animate){sBusy=false;return;}
+  const x=cardDir==='prev'?-60:60;
+  const a=fc.animate(
+    [{opacity:0,transform:`translateX(${x}px) scale(.9) rotateZ(${cardDir==='prev'?-1.5:1.5}deg)`,filter:'blur(3px)'},
+     {opacity:1,transform:'none',filter:'blur(0)'}],
+    {duration:440,easing:'cubic-bezier(.16,.84,.44,1)',fill:'both'}
   );
+  a.onfinish=()=>{sBusy=false;};
+}
+// anima o card atual saindo, depois renderiza o próximo
+function leaveThen(cb){
+  if(sBusy)return;
+  const fc=document.getElementById('fc');
+  if(!fc||!fc.animate){cb();return;}
+  sBusy=true;
+  const x=cardDir==='prev'?70:-70;
+  const a=fc.animate(
+    [{opacity:1,transform:'none',filter:'blur(0)'},
+     {opacity:0,transform:`translateX(${x}px) scale(.92)`,filter:'blur(2px)'}],
+    {duration:210,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}
+  );
+  a.onfinish=cb;
 }
 function flip(){
   const fc=document.getElementById('fc'); if(!fc)return;
@@ -124,11 +141,11 @@ function flip(){
     );
   }
 }
-function grade(i){sResults[sIdx]=(i===1);cardDir='next';sIdx++;renderCard();}
+function grade(i){if(sBusy)return;sResults[sIdx]=(i===1);cardDir='next';leaveThen(()=>{sIdx++;renderCard();});}
 function redoWrong(){const w=STUDY_CARDS.filter((c,i)=>sResults[i]===false);startSession(w,studyBack);}
 function redoAll(){startSession(STUDY_CARDS,studyBack);}
-function nextCard(){cardDir='next';sIdx++;renderCard();}
-function prevCard(){if(sIdx>0){cardDir='prev';sIdx--;renderCard();}}
+function nextCard(){if(sBusy)return;cardDir='next';leaveThen(()=>{sIdx++;renderCard();});}
+function prevCard(){if(sBusy||sIdx<=0)return;cardDir='prev';leaveThen(()=>{sIdx--;renderCard();});}
 // keyboard controls (only in study view)
 document.addEventListener('keydown',e=>{
   const v=document.getElementById('view-study');
