@@ -97,10 +97,10 @@ function renderCard(){
       <div class="ans yes" onclick="grade(1)"><svg class="ic"><use href="#ic-check"/></svg> Aprendi</div>
     </div>
     <div class="sess-keys muted">
-      <span onclick="prevCard()">← voltar</span>
+      <span onclick="prevCard()">⬅️ voltar</span>
       <span onclick="flip()">space virar</span>
-      <span>↑ aprendi · ↓ não</span>
-      <span onclick="nextCard()">próximo →</span>
+      <span>⬆️ aprendi · ⬇️ não</span>
+      <span onclick="nextCard()">próximo ➡️</span>
     </div>`;
   animateCardIn();syncFsIcon();
 }
