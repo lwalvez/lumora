@@ -207,7 +207,7 @@ function startMode(k){
   if(k==='learn'){startSession(STUDY_CARDS,studyBack);return;}
   if(k==='test'){startTest();return;}
   if(k==='match'){startMatch();return;}
-  toast(k==='blast'?'Blast é para turmas/escolas — disponível no plano Schools.':'Recurso do Lumora Pro — em breve nesta demo.');
+  toast(k==='blast'?'Blast é para turmas/escolas — disponível no plano Schools.':'Recurso em breve nesta demo.');
 }
 
 // helpers
@@ -757,6 +757,21 @@ function importSheetUrl(){
     .catch(()=>alert('Não consegui acessar. Deixe a planilha pública (Compartilhar → qualquer um com o link), ou baixe como CSV/Excel e importe o arquivo.'));
 }
 
+// Twemoji: converte todo emoji em SVG colorido (visível em qualquer SO/navegador)
+let _emojiMO=null,_emojiT=null;
+function parseEmoji(){
+  if(!window.twemoji)return;
+  twemoji.parse(document.body,{base:'https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/',folder:'svg',ext:'.svg'});
+}
+function startEmoji(){
+  if(!window.twemoji)return;
+  parseEmoji();
+  _emojiMO=new MutationObserver(()=>{clearTimeout(_emojiT);_emojiT=setTimeout(()=>{
+    _emojiMO.disconnect();parseEmoji();_emojiMO.observe(document.body,{childList:true,subtree:true});
+  },50);});
+  _emojiMO.observe(document.body,{childList:true,subtree:true});
+}
+
 // init
 addEventListener('DOMContentLoaded',async()=>{
   setThemeIcon();
@@ -765,4 +780,5 @@ addEventListener('DOMContentLoaded',async()=>{
   const em=document.getElementById('acct-email'); if(em&&window.userEmail)em.textContent=userEmail()||'conta';
   loadNotes();loadFDecks();renderDecks();renderImport();renderChat();
   document.querySelectorAll('.navlink').forEach(l=>l.onclick=()=>go(l.dataset.view));
+  startEmoji();
 });

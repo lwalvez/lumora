@@ -4,11 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumora — App</title>
-<link rel="stylesheet" href="css/style.css?v=23">
-<script src="js/icons.js?v=23"></script>
+<link rel="stylesheet" href="css/style.css?v=24">
+<script src="js/icons.js?v=24"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js?v=23"></script>
+<script src="js/supabase.js?v=24"></script>
+<script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
 <style>
   body{display:flex;min-height:100vh}
   /* Sidebar */
@@ -24,18 +25,15 @@
   .navlink:hover{background:var(--surface-2);color:var(--text)}
   .navlink.active{background:var(--grad);color:#fff;box-shadow:0 8px 22px rgba(124,92,255,.4),inset 0 1px 0 rgba(255,255,255,.35)}
   .navlink.active svg{stroke-width:2}
+  /* Twemoji: emoji como SVG colorido em qualquer navegador */
+  img.twemoji,img.emoji{height:1.1em;width:1.1em;vertical-align:-.14em;margin:0 .04em;display:inline-block}
+  .nav-emo img.twemoji,.deck .emoji img.twemoji,.fcd .em img.twemoji{height:1em;width:1em}
   .side-foot{margin-top:auto;display:flex;flex-direction:column;gap:11px}
   .acct{display:flex;flex-direction:column;gap:9px}
   .acct-user{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:0 4px;overflow:hidden}
   .acct-user span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:.3s}
   .sync-dot.ok{background:var(--success);box-shadow:0 0 8px var(--success)}
-  .upsell{padding:18px;border-radius:var(--r-lg);background:var(--grad);color:#fff;position:relative;overflow:hidden;
-    box-shadow:0 10px 28px rgba(124,92,255,.4)}
-  .upsell::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.35),transparent 50%);opacity:.6}
-  .upsell h4{font-size:14.5px;margin-bottom:5px;position:relative}
-  .upsell p{font-size:12px;opacity:.92;margin-bottom:12px;position:relative}
-  .upsell .btn{background:#fff;color:var(--primary-press);width:100%;padding:9px;position:relative;font-size:14px}
 
   main{flex:1;min-width:0;display:flex;flex-direction:column;height:100vh;overflow-y:auto}
   .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;
@@ -349,11 +347,6 @@
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor IA</div>
   <div class="navlink" data-view="arena"><span class="nav-emo emo">🎮</span>Arena</div>
   <div class="side-foot">
-    <div class="upsell">
-      <h4>Lumora Pro</h4>
-      <p>IA ilimitada, offline e Forgetting Forecast.</p>
-      <button class="btn">Testar 7 dias</button>
-    </div>
     <div class="acct">
       <div class="acct-user"><span class="sync-dot" id="sync-dot"></span><span id="acct-email" class="muted">—</span></div>
       <div style="display:flex;gap:8px">
@@ -499,6 +492,6 @@
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
 </nav>
 
-<script src="js/app.js?v=23"></script>
+<script src="js/app.js?v=24"></script>
 </body>
 </html>
