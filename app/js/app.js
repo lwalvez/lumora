@@ -76,6 +76,7 @@ function renderCard(){
       <span class="x" onclick="go(studyBack)"><svg class="ic"><use href="#ic-close"/></svg></span>
       <div class="bar"><i style="width:${pct}%"></i></div>
       <span class="muted" style="font-size:14px">${sIdx+1}/${SESSION_LEN}</span>
+      <span class="x" id="fsBtn" onclick="toggleFs()" title="Tela cheia"><svg class="ic"><use href="#ic-expand"/></svg></span>
     </div>
     <div class="flashcard" id="fc" onclick="flip()">
       <div class="fc-inner">
@@ -101,7 +102,7 @@ function renderCard(){
       <span>↑ aprendi · ↓ não</span>
       <span onclick="nextCard()">próximo →</span>
     </div>`;
-  animateCardIn();
+  animateCardIn();syncFsIcon();
 }
 // transição de cards via Web Animations API (imune a CSS !important / sempre re-dispara)
 let sBusy=false;
@@ -129,6 +130,17 @@ function leaveThen(cb){
   );
   a.onfinish=cb;
 }
+// tela cheia da sessão de estudo
+function toggleFs(){
+  const el=document.getElementById('view-study');
+  if(!document.fullscreenElement){ if(el.requestFullscreen)el.requestFullscreen(); }
+  else if(document.exitFullscreen) document.exitFullscreen();
+}
+function syncFsIcon(){
+  const b=document.getElementById('fsBtn'); if(!b)return;
+  b.innerHTML=`<svg class="ic"><use href="#ic-${document.fullscreenElement?'shrink':'expand'}"/></svg>`;
+}
+document.addEventListener('fullscreenchange',syncFsIcon);
 function flip(){
   const fc=document.getElementById('fc'); if(!fc)return;
   const inner=fc.querySelector('.fc-inner'); if(!inner)return;
