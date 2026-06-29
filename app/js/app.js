@@ -107,28 +107,25 @@ function renderCard(){
 // transição de cards via Web Animations API (imune a CSS !important / sempre re-dispara)
 let sBusy=false;
 function animateCardIn(){
-  const fc=document.getElementById('fc'); if(!fc||!fc.animate){sBusy=false;return;}
-  const x=cardDir==='prev'?-60:60;
-  const a=fc.animate(
-    [{opacity:0,transform:`translateX(${x}px) scale(.9) rotateZ(${cardDir==='prev'?-1.5:1.5}deg)`,filter:'blur(3px)'},
-     {opacity:1,transform:'none',filter:'blur(0)'}],
-    {duration:440,easing:'cubic-bezier(.16,.84,.44,1)',fill:'both'}
+  const fc=document.getElementById('fc'); if(!fc||!fc.animate)return;
+  const x=cardDir==='prev'?-34:34;
+  fc.animate(
+    [{opacity:0,transform:`translateX(${x}px) scale(.97)`},{opacity:1,transform:'none'}],
+    {duration:200,easing:'cubic-bezier(.16,.84,.44,1)',fill:'both'}
   );
-  a.onfinish=()=>{sBusy=false;};
 }
-// anima o card atual saindo, depois renderiza o próximo
+// anima o card atual saindo (rápido), libera input e renderiza o próximo
 function leaveThen(cb){
   if(sBusy)return;
   const fc=document.getElementById('fc');
   if(!fc||!fc.animate){cb();return;}
   sBusy=true;
-  const x=cardDir==='prev'?70:-70;
+  const x=cardDir==='prev'?40:-40;
   const a=fc.animate(
-    [{opacity:1,transform:'none',filter:'blur(0)'},
-     {opacity:0,transform:`translateX(${x}px) scale(.92)`,filter:'blur(2px)'}],
-    {duration:210,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}
+    [{opacity:1,transform:'none'},{opacity:0,transform:`translateX(${x}px) scale(.97)`}],
+    {duration:90,easing:'cubic-bezier(.4,0,1,1)',fill:'forwards'}
   );
-  a.onfinish=cb;
+  a.onfinish=()=>{cb();sBusy=false;};
 }
 // tela cheia da sessão de estudo
 function toggleFs(){
