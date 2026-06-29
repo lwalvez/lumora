@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumora — App</title>
-<link rel="stylesheet" href="css/style.css?v=16">
-<script src="js/icons.js?v=16"></script>
+<link rel="stylesheet" href="css/style.css?v=17">
+<script src="js/icons.js?v=17"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js?v=16"></script>
+<script src="js/supabase.js?v=17"></script>
 <style>
   body{display:flex;min-height:100vh}
   /* Sidebar */
@@ -92,25 +92,10 @@
   .sess-top .x:hover{background:var(--surface-2)}
   .sess-top .x svg{width:18px;height:18px}
   .flashcard{perspective:2000px;height:344px;margin-bottom:22px;cursor:pointer;will-change:transform,opacity}
-  .fc-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;will-change:transform;
-    transition:transform .62s cubic-bezier(.2,.75,.2,1)}
-  .flashcard.flip .fc-inner{transform:rotateY(180deg)}
-  /* leve respiro durante o giro — sensação premium */
-  .flashcard:active .fc-inner{transition-duration:.5s}
+  /* flip dirigido por JS (Web Animations API) — transform-style mantém o 3D */
+  .fc-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;will-change:transform}
   .fc-face{transition:box-shadow .5s var(--ease)}
   .flashcard.flip .fc-face{box-shadow:var(--shadow-lg),0 0 0 1px rgba(255,255,255,.05)}
-  /* entrada do card (direcional) */
-  @keyframes cardInNext{0%{opacity:0;transform:translateX(46px) scale(.94)}60%{opacity:1}100%{opacity:1;transform:none}}
-  @keyframes cardInPrev{0%{opacity:0;transform:translateX(-46px) scale(.94)}60%{opacity:1}100%{opacity:1;transform:none}}
-  .flashcard.in-next{animation:cardInNext .52s cubic-bezier(.22,.61,.36,1) both}
-  .flashcard.in-prev{animation:cardInPrev .52s cubic-bezier(.22,.61,.36,1) both}
-  /* respostas/atalhos entram suaves junto */
-  #grade-area,.answers,.sess-keys{animation:fadeUp .5s .08s var(--ease) both}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-  @media (prefers-reduced-motion:reduce){
-    .flashcard.in-next,.flashcard.in-prev,#grade-area,.answers,.sess-keys{animation:none}
-    .fc-inner{transition-duration:.01ms}
-  }
   .fc-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:var(--r-2xl);
     display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:42px;
     box-shadow:var(--shadow-lg),var(--glow)}
@@ -501,6 +486,6 @@
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
 </nav>
 
-<script src="js/app.js?v=16"></script>
+<script src="js/app.js?v=17"></script>
 </body>
 </html>

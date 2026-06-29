@@ -77,7 +77,7 @@ function renderCard(){
       <div class="bar"><i style="width:${pct}%"></i></div>
       <span class="muted" style="font-size:14px">${sIdx+1}/${SESSION_LEN}</span>
     </div>
-    <div class="flashcard in-${cardDir}" id="fc" onclick="flip()">
+    <div class="flashcard" id="fc" onclick="flip()">
       <div class="fc-inner">
         <div class="fc-face glass">
           <div class="lbl">${c.bloom} · Active Recall</div>
@@ -101,10 +101,28 @@ function renderCard(){
       <span>↑ aprendi · ↓ não</span>
       <span onclick="nextCard()">próximo →</span>
     </div>`;
+  animateCardIn();
+}
+// entrada do card via Web Animations API (imune a CSS !important / sempre re-dispara)
+function animateCardIn(){
+  const fc=document.getElementById('fc'); if(!fc||!fc.animate)return;
+  const x=cardDir==='prev'?-48:48;
+  fc.animate(
+    [{opacity:0,transform:`translateX(${x}px) scale(.94)`},{opacity:0.6,offset:.5},{opacity:1,transform:'none'}],
+    {duration:480,easing:'cubic-bezier(.22,.61,.36,1)',fill:'both'}
+  );
 }
 function flip(){
+  const fc=document.getElementById('fc'); if(!fc)return;
+  const inner=fc.querySelector('.fc-inner'); if(!inner)return;
   sFlip=!sFlip;
-  document.getElementById('fc').classList.toggle('flip',sFlip);
+  fc.classList.toggle('flip',sFlip);
+  if(inner.animate){
+    inner.animate(
+      [{transform:`rotateY(${sFlip?0:180}deg)`},{transform:`rotateY(${sFlip?180:0}deg)`}],
+      {duration:600,easing:'cubic-bezier(.2,.75,.2,1)',fill:'both'}
+    );
+  }
 }
 function grade(i){sResults[sIdx]=(i===1);cardDir='next';sIdx++;renderCard();}
 function redoWrong(){const w=STUDY_CARDS.filter((c,i)=>sResults[i]===false);startSession(w,studyBack);}
