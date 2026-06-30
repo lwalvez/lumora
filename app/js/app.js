@@ -145,13 +145,14 @@ function grade(i){
   const advance=()=>{cardDir='next';sIdx++;renderCard();};
   if(fc&&fc.animate){
     sBusy=true;
-    const col=ok?'34,197,94':'239,68,68'; // verde acerto / vermelho erro
+    const col=ok?'57,255,20':'255,42,42'; // neon verde acerto / neon vermelho erro
+    const ring=a=>`0 0 0 2px rgba(${col},${a}), 0 0 12px 2px rgba(${col},${a*.85}), 0 0 26px 6px rgba(${col},${a*.55}), 0 0 48px 14px rgba(${col},${a*.3})`;
     fc.animate([
-      {boxShadow:`0 0 0 0 rgba(${col},0)`},
-      {boxShadow:`0 0 0 3px rgba(${col},.9)`,offset:.45},
-      {boxShadow:`0 0 0 0 rgba(${col},0)`}
-    ],{duration:300,easing:'ease-out'});
-    setTimeout(()=>{sBusy=false;advance();},190);
+      {boxShadow:ring(0)},
+      {boxShadow:ring(1),offset:.4},
+      {boxShadow:ring(0)}
+    ],{duration:360,easing:'ease-out'});
+    setTimeout(()=>{sBusy=false;advance();},200);
   }else{advance();}
 }
 function redoWrong(){const w=STUDY_CARDS.filter((c,i)=>sResults[i]===false);startSession(w,studyBack);}
