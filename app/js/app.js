@@ -138,7 +138,22 @@ function flip(){
     );
   }
 }
-function grade(i){if(sBusy)return;sResults[sIdx]=(i===1);cardDir='next';leaveThen(()=>{sIdx++;renderCard();});}
+function grade(i){
+  if(sBusy)return;
+  const ok=(i===1);sResults[sIdx]=ok;
+  const fc=document.getElementById('fc');
+  const advance=()=>{cardDir='next';sIdx++;renderCard();};
+  if(fc&&fc.animate){
+    sBusy=true;
+    const col=ok?'34,197,94':'239,68,68'; // verde acerto / vermelho erro
+    fc.animate([
+      {boxShadow:`0 0 0 0 rgba(${col},0)`},
+      {boxShadow:`0 0 0 3px rgba(${col},.9)`,offset:.45},
+      {boxShadow:`0 0 0 0 rgba(${col},0)`}
+    ],{duration:300,easing:'ease-out'});
+    setTimeout(()=>{sBusy=false;advance();},190);
+  }else{advance();}
+}
 function redoWrong(){const w=STUDY_CARDS.filter((c,i)=>sResults[i]===false);startSession(w,studyBack);}
 function redoAll(){startSession(STUDY_CARDS,studyBack);}
 function nextCard(){if(sBusy)return;cardDir='next';leaveThen(()=>{sIdx++;renderCard();});}
