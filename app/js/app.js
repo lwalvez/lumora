@@ -1035,37 +1035,81 @@ async function genSim(){
   }catch(e){simSetStatus('✗ Erro: '+e.message,'err');}
   finally{btn.disabled=false;}
 }
+let simState=[],simT0=0,simTick=null;
+function simStop(){if(simTick){clearInterval(simTick);simTick=null;}}
 function renderSimQuiz(){
   const box=document.getElementById('sim-body');
-  box.innerHTML=simQuiz.map((q,i)=>`
+  simState=simQuiz.map(()=>null);
+  box.innerHTML=`
+    <div class="sim-head glass" style="display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:5;padding:12px 16px;border-radius:var(--r-md);margin-bottom:14px">
+      <b style="flex:1">🧪 Simulado · ${simQuiz.length} questões</b>
+      <span class="chip" style="gap:6px">⏱️ <span id="sim-timer" class="tabular">0s</span></span>
+      <span class="chip" style="gap:6px">✅ <span id="sim-score" class="tabular">0</span></span>
+    </div>
+    <div class="bar" style="margin-bottom:16px"><i id="sim-fill" style="width:0%"></i></div>
+    `+simQuiz.map((q,i)=>`
     <div class="panel glass sim-q" id="simq-${i}">
       <div class="qh"><span class="n">${i+1}.</span><span>${esc(q.q)}</span></div>
-      ${q.options.map((o,j)=>`<label class="sim-opt" data-opt="${j}">
+      ${q.options.map((o,j)=>`<label class="sim-opt" data-opt="${j}" onclick="simPick(${i},${j})">
         <input type="radio" name="simq-${i}" value="${j}"> <span>${esc(o)}</span></label>`).join('')}
       <div class="sim-exp" style="display:none">${esc(q.explanation)}</div>
     </div>`).join('')+
-    `<div class="set-actions"><button class="btn btn-grad" onclick="submitSim()">Corrigir</button>
-       <button class="btn" onclick="go('sim');document.getElementById('sim-body').innerHTML='';document.getElementById('sim-topic').focus()">Novo</button></div>`;
-  window.scrollTo?box.scrollIntoView({behavior:'smooth',block:'start'}):0;
+    `<div id="sim-actions" class="set-actions"><button class="btn btn-ghost" onclick="simFinish()">Ver resultado</button>
+       <button class="btn" onclick="simStop();go('sim');document.getElementById('sim-body').innerHTML='';document.getElementById('sim-topic').focus()">Novo tema</button></div>`;
+  simT0=Date.now();simStop();
+  simTick=setInterval(()=>{const t=document.getElementById('sim-timer');if(t)t.textContent=fmtDur(Date.now()-simT0);},1000);
+  if(window.twemoji)twemoji.parse(box);
+  box.scrollIntoView({behavior:'smooth',block:'start'});
 }
-function submitSim(){
-  let score=0;
-  simQuiz.forEach((q,i)=>{
-    const sel=document.querySelector(`input[name="simq-${i}"]:checked`);
-    const picked=sel?Number(sel.value):-1;if(picked===q.answer)score++;
-    document.querySelectorAll(`#simq-${i} .sim-opt`).forEach(el=>{
-      const j=Number(el.dataset.opt);
-      if(j===q.answer)el.classList.add('correct');
-      else if(j===picked)el.classList.add('wrong');
-      el.querySelector('input').disabled=true;
-    });
-    const exp=document.querySelector(`#simq-${i} .sim-exp`);if(exp&&q.explanation)exp.style.display='block';
+function simPick(i,j){
+  if(simState[i]!==null)return; // questão já respondida
+  simState[i]=j;
+  const q=simQuiz[i];
+  document.querySelectorAll(`#simq-${i} .sim-opt`).forEach(el=>{
+    const o=Number(el.dataset.opt);
+    if(o===q.answer)el.classList.add('correct');
+    else if(o===j)el.classList.add('wrong');
+    const inp=el.querySelector('input');inp.disabled=true;if(o===j)inp.checked=true;
   });
+  const exp=document.querySelector(`#simq-${i} .sim-exp`);if(exp&&q.explanation)exp.style.display='block';
+  const done=simState.filter(x=>x!==null).length;
+  const score=simState.reduce((s,x,k)=>s+(x===simQuiz[k].answer?1:0),0);
+  const sc=document.getElementById('sim-score');if(sc)sc.textContent=score;
+  const f=document.getElementById('sim-fill');if(f)f.style.width=done/simQuiz.length*100+'%';
+  if(done===simQuiz.length)simFinish();
+}
+function simFinish(){
+  simStop();
+  if(document.getElementById('sim-result'))return;
+  const time=Date.now()-simT0;
+  const score=simState.reduce((s,x,k)=>s+(x===simQuiz[k].answer?1:0),0);
+  const answered=simState.filter(x=>x!==null).length;
+  const wrong=simState.reduce((n,x,k)=>n+((x!==null&&x!==simQuiz[k].answer)?1:0),0);
   const pct=Math.round(score/simQuiz.length*100);
-  const card=document.createElement('div');card.className='panel glass sim-score';card.style.marginTop='16px';
-  card.innerHTML=`<div class="big" style="color:${pct>=70?'var(--success)':pct>=50?'var(--warning)':'var(--danger,#ff5a5a)'}">${score}/${simQuiz.length}</div>
-    <div class="stat-lbl">${pct}% de acerto</div>`;
-  const box=document.getElementById('sim-body');box.prepend(card);card.scrollIntoView({behavior:'smooth',block:'center'});
+  const emo=pct>=80?'🎉':pct>=50?'💪':'📚';
+  const color=pct>=70?'var(--success)':pct>=50?'var(--warning)':'var(--danger,#ff5a5a)';
+  simQuiz.forEach((q,i)=>{if(simState[i]===null){document.querySelectorAll(`#simq-${i} .sim-opt`).forEach(el=>{if(Number(el.dataset.opt)===q.answer)el.classList.add('correct');el.querySelector('input').disabled=true;});const exp=document.querySelector(`#simq-${i} .sim-exp`);if(exp&&q.explanation)exp.style.display='block';}});
+  const card=document.createElement('div');card.className='panel glass sim-score';card.id='sim-result';card.style.cssText='margin-bottom:16px;text-align:center';
+  card.innerHTML=`<div class="big emo" style="font-size:40px">${emo}</div>
+    <div class="big" style="color:${color}">${score}/${simQuiz.length}</div>
+    <div class="stat-lbl">${pct}% de acerto · ⏱️ ${fmtDur(time)}${answered<simQuiz.length?` · ${simQuiz.length-answered} em branco`:''}</div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px">
+      ${wrong?`<button class="btn btn-glass" onclick="simRetryWrong()">Refazer erros (${wrong})</button>`:''}
+      <button class="btn btn-glass" onclick="exportSimToDrive()"><span class="nav-emo emo">📁</span> Exportar</button>
+    </div>`;
+  const box=document.getElementById('sim-body');box.prepend(card);
+  const act=document.getElementById('sim-actions');if(act)act.remove();
+  if(window.twemoji)twemoji.parse(card);
+  card.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function simRetryWrong(){
+  const w=simQuiz.filter((q,i)=>simState[i]!==null&&simState[i]!==q.answer);
+  if(!w.length)return;simQuiz=w;renderSimQuiz();
+}
+function exportSimToDrive(){
+  const cards=simQuiz.map(q=>({q:q.q,a:q.options[q.answer]+(q.explanation?` — ${q.explanation}`:'')}));
+  const results=simQuiz.map((q,i)=>simState[i]===null?undefined:simState[i]===q.answer);
+  exportSessionToDrive('Simulado IA',cards,results);
 }
 
 // ===== Sidebar · seções visíveis =====
