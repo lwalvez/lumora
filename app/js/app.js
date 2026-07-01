@@ -238,61 +238,166 @@ function toast(msg){
   clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),3200);
 }
 
-// ---- TEST mode ----
-let TEST=[];
-function startTest(){
-  const cards=STUDY_CARDS,answers=cards.map(c=>c.a);
-  TEST=cards.slice(0,Math.min(cards.length,10)).map((c,i)=>{
-    const t=i%3;
-    if(t===0){
-      // pool de distratores: únicos (normalizados) e diferentes da correta
-      const seen=new Set([norm(c.a)]);
-      const pool=answers.filter(a=>{const k=norm(a);if(seen.has(k))return false;seen.add(k);return true;});
-      return{type:'mc',q:c.q,correct:c.a,opts:shuffle([c.a,...sample(pool,3)])};
-    }
-    if(t===1){const good=Math.random()<0.5;const shown=good?c.a:(sample(answers.filter(a=>a!==c.a),1)[0]||c.a);return{type:'tf',q:c.q,shown,answer:good};}
-    return{type:'wr',q:c.q,correct:c.a};
-  });
-  renderTest();
-}
-function renderTest(){
+// ---- TEST mode (gerador de simulados a partir do deck) ----
+let TEST=[],testCfg={n:10,types:['mc','tf','wr'],timed:false},testT0=0,testTick=null,testGraded=false;
+const TYPE_META={mc:{n:'Múltipla escolha',e:'🔘'},tf:{n:'Verdadeiro / Falso',e:'⚖️'},wr:{n:'Escrita',e:'✍️'}};
+
+function openTestSetup(){
+  const max=(STUDY_CARDS||[]).length||0;
+  if(!max){toast('Sem cards para gerar prova');go(studyBack);return;}
+  const counts=[5,10,15,20].filter(n=>n<max);counts.push(max);
+  const uniq=[...new Set(counts)].filter(n=>n>0);
   const el=document.getElementById('session');
   el.innerHTML=`
     <div class="sess-top"><span class="x" onclick="showDone()"><svg class="ic"><use href="#ic-close"/></svg></span>
-      <b style="flex:1">📝 Test · ${TEST.length} questões</b></div>
+      <b style="flex:1">📝 Montar simulado</b></div>
+    <div class="t-setup glass" style="max-width:640px;margin:0 auto;padding:22px;border-radius:var(--r-lg)">
+      <h3 style="margin-bottom:6px">Personalize sua prova</h3>
+      <p class="muted" style="font-size:13.5px;margin-bottom:18px">${max} cards disponíveis neste conjunto.</p>
+
+      <div class="set-lbl" style="font-weight:600;margin-bottom:8px">Nº de questões</div>
+      <div id="ts-count" class="ts-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+        ${uniq.map(n=>`<button type="button" class="chip ts-chip${n===Math.min(10,max)?' on':''}" data-n="${n}" onclick="tsPick(this)">${n===max?'Todas ('+n+')':n}</button>`).join('')}
+      </div>
+
+      <div class="set-lbl" style="font-weight:600;margin-bottom:8px">Tipos de questão</div>
+      <div id="ts-types" class="ts-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+        ${Object.entries(TYPE_META).map(([k,m])=>`<button type="button" class="chip ts-chip on" data-t="${k}" onclick="tsToggleType(this)"><span class="nav-emo emo">${m.e}</span> ${m.n}</button>`).join('')}
+      </div>
+
+      <label class="ts-row" style="display:flex;align-items:center;gap:10px;margin-bottom:22px;cursor:pointer">
+        <input type="checkbox" id="ts-timed"> <span>⏱️ Cronometrar a prova</span>
+      </label>
+
+      <button class="btn btn-grad" style="width:100%" onclick="startTestFromSetup()">Gerar simulado</button>
+    </div>`;
+  if(window.twemoji)twemoji.parse(el);
+}
+function tsPick(btn){
+  btn.parentElement.querySelectorAll('.ts-chip').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function tsToggleType(btn){
+  const on=btn.parentElement.querySelectorAll('.ts-chip.on');
+  if(btn.classList.contains('on')&&on.length<=1){toast('Escolha ao menos um tipo');return;}
+  btn.classList.toggle('on');
+}
+function startTestFromSetup(){
+  const nBtn=document.querySelector('#ts-count .ts-chip.on');
+  const types=[...document.querySelectorAll('#ts-types .ts-chip.on')].map(b=>b.dataset.t);
+  testCfg={n:nBtn?+nBtn.dataset.n:10,types:types.length?types:['mc','tf','wr'],timed:document.getElementById('ts-timed').checked};
+  startTest();
+}
+function buildTest(){
+  const cards=shuffle(STUDY_CARDS||[]);
+  const answers=(STUDY_CARDS||[]).map(c=>c.a);
+  const types=testCfg.types.length?testCfg.types:['mc','tf','wr'];
+  const n=Math.min(cards.length,testCfg.n||10);
+  return cards.slice(0,n).map(c=>{
+    let type=types[Math.floor(Math.random()*types.length)];
+    if(type==='mc'){
+      const seen=new Set([norm(c.a)]);
+      const pool=answers.filter(a=>{const k=norm(a);if(seen.has(k))return false;seen.add(k);return true;});
+      if(pool.length<1)type='wr';
+      else return{type:'mc',q:c.q,correct:c.a,opts:shuffle([c.a,...sample(pool,Math.min(3,pool.length))])};
+    }
+    if(type==='tf'){const good=Math.random()<0.5;const shown=good?c.a:(sample(answers.filter(a=>a!==c.a),1)[0]||c.a);return{type:'tf',q:c.q,correct:c.a,shown,answer:good};}
+    return{type:'wr',q:c.q,correct:c.a};
+  });
+}
+function startTest(){
+  TEST=buildTest();testGraded=false;
+  renderTest();
+  testT0=Date.now();stopTestTimer();
+  if(testCfg.timed)testTick=setInterval(updTestTimer,1000);
+}
+function stopTestTimer(){if(testTick){clearInterval(testTick);testTick=null;}}
+function fmtDur(ms){const s=Math.floor(ms/1000);return s<60?s+'s':Math.floor(s/60)+'m'+String(s%60).padStart(2,'0')+'s';}
+function updTestTimer(){const el=document.getElementById('test-timer');if(el)el.textContent=fmtDur(Date.now()-testT0);}
+function renderTest(){
+  const el=document.getElementById('session');
+  el.innerHTML=`
+    <div class="sess-top"><span class="x" onclick="stopTestTimer();showDone()"><svg class="ic"><use href="#ic-close"/></svg></span>
+      <b style="flex:1">📝 Simulado</b>
+      ${testCfg.timed?`<span class="chip" style="gap:6px">⏱️ <span id="test-timer" class="tabular">0s</span></span>`:''}
+      <span class="chip" style="gap:6px">📊 <span id="test-prog" class="tabular">0/${TEST.length}</span></span></div>
+    <div class="t-progbar bar" style="margin:0 0 16px"><i id="test-fill" style="width:0%"></i></div>
     <div id="test-body">${TEST.map((q,i)=>testQuestion(q,i)).join('')}</div>
-    <button class="btn btn-grad" style="width:100%;margin-top:8px" onclick="gradeTest()">Corrigir prova</button>`;
+    <button class="btn btn-grad" id="test-grade" style="width:100%;margin-top:8px" onclick="gradeTest()">Corrigir prova</button>`;
+  if(window.twemoji)twemoji.parse(el);
+  updTestProgress();
 }
 function testQuestion(q,i){
+  const tag=`<span class="t-tag">${TYPE_META[q.type].e} ${TYPE_META[q.type].n}</span>`;
   let body='';
   if(q.type==='mc'){
-    body=q.opts.map(o=>`<label class="t-opt"><input type="radio" name="q${i}" value="${esc(o)}"> ${esc(o)}</label>`).join('');
+    body=q.opts.map(o=>`<label class="t-opt"><input type="radio" name="q${i}" value="${esc(o)}" onchange="updTestProgress()"> ${esc(o)}</label>`).join('');
   }else if(q.type==='tf'){
     body=`<div class="t-claim">Afirmação: <b>${esc(q.shown)}</b></div>
-      <label class="t-opt"><input type="radio" name="q${i}" value="true"> Verdadeiro</label>
-      <label class="t-opt"><input type="radio" name="q${i}" value="false"> Falso</label>`;
+      <label class="t-opt"><input type="radio" name="q${i}" value="true" onchange="updTestProgress()"> Verdadeiro</label>
+      <label class="t-opt"><input type="radio" name="q${i}" value="false" onchange="updTestProgress()"> Falso</label>`;
   }else{
-    body=`<input class="t-input" id="q${i}" placeholder="Sua resposta…">`;
+    body=`<input class="t-input" id="q${i}" placeholder="Sua resposta…" oninput="updTestProgress()">`;
   }
-  return `<div class="t-q glass" id="tq${i}"><div class="t-num">${i+1}. ${esc(q.q)}</div>${body}</div>`;
+  return `<div class="t-q glass" id="tq${i}"><div class="t-num">${i+1}. ${tag}</div><div class="t-qtext">${esc(q.q)}</div>${body}</div>`;
+}
+function isAnswered(q,i){
+  if(q.type==='wr'){const el=document.getElementById('q'+i);return !!(el&&el.value.trim());}
+  return !!document.querySelector(`input[name=q${i}]:checked`);
+}
+function updTestProgress(){
+  if(testGraded)return;
+  const done=TEST.filter((q,i)=>isAnswered(q,i)).length;
+  const p=document.getElementById('test-prog'),f=document.getElementById('test-fill');
+  if(p)p.textContent=`${done}/${TEST.length}`;
+  if(f)f.style.width=(TEST.length?done/TEST.length*100:0)+'%';
 }
 function gradeTest(){
-  let ok=0;
+  testGraded=true;stopTestTimer();
+  const time=Date.now()-testT0;
+  let ok=0;const byType={},wrong=[];
   TEST.forEach((q,i)=>{
     let correct=false,box=document.getElementById('tq'+i);
-    if(q.type==='wr'){correct=norm(document.getElementById('q'+i).value)===norm(q.correct);}
+    if(q.type==='wr'){const inp=document.getElementById('q'+i);correct=norm((inp||{}).value||'')===norm(q.correct);if(inp)inp.disabled=true;}
     else{const sel=document.querySelector(`input[name=q${i}]:checked`);const v=sel?sel.value:null;
-      correct=q.type==='mc'?(v===q.correct):(v===String(q.answer));}
-    if(correct)ok++;
+      correct=q.type==='mc'?(v===q.correct):(v===String(q.answer));
+      document.querySelectorAll(`input[name=q${i}]`).forEach(x=>x.disabled=true);}
+    byType[q.type]=byType[q.type]||{ok:0,total:0};byType[q.type].total++;if(correct)byType[q.type].ok++;
+    if(correct)ok++;else wrong.push(q);
+    q._wrong=!correct;
     box.classList.add(correct?'t-ok':'t-bad');
     if(!correct){const ans=q.type==='tf'?(q.answer?'Verdadeiro':'Falso'):q.correct;
-      box.insertAdjacentHTML('beforeend',`<div class="t-ans"><svg class="ic"><use href="#ic-check"/></svg> ${esc(ans)}</div>`);}
+      box.insertAdjacentHTML('beforeend',`<div class="t-ans"><svg class="ic"><use href="#ic-check"/></svg> Resposta: ${esc(ans)}</div>`);}
   });
   const pct=Math.round(ok/TEST.length*100);
+  const emo=pct>=80?'🎉':pct>=50?'💪':'📚';
+  const color=pct>=70?'var(--success)':pct>=50?'var(--warning)':'var(--danger,#ff5a5a)';
+  const breakdown=Object.entries(byType).map(([k,v])=>`<span class="t-brk">${TYPE_META[k].e} ${v.ok}/${v.total}</span>`).join('');
   document.getElementById('test-body').insertAdjacentHTML('beforebegin',
-    `<div class="t-result glass">Resultado: <b>${ok}/${TEST.length}</b> · ${pct}%</div>`);
-  document.querySelector('#session .btn-grad').outerHTML=
-    `<div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap"><button class="btn btn-grad" style="flex:1" onclick="startTest()">Refazer prova</button><button class="btn btn-glass" onclick="exportSessionToDrive('Simulado')"><span class="nav-emo emo">📁</span> Exportar para o Drive</button><button class="btn btn-ghost" onclick="showDone()">Modos</button></div>`;
+    `<div class="t-result glass" style="text-align:center">
+      <div class="big emo" style="font-size:40px">${emo}</div>
+      <div class="stat" style="color:${color};margin-top:4px">${ok}/${TEST.length}</div>
+      <div class="stat-lbl">${pct}% de acerto${testCfg.timed?` · ⏱️ ${fmtDur(time)}`:''} · +${ok*10} XP</div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px">${breakdown}</div>
+    </div>`);
+  const rc=document.querySelector('#session .t-result');if(rc)rc.scrollIntoView({behavior:'smooth',block:'center'});
+  if(window.twemoji)twemoji.parse(document.getElementById('session'));
+  document.getElementById('test-grade').outerHTML=
+    `<div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+      ${wrong.length?`<button class="btn btn-glass" onclick="retryWrongTest()"><svg class="ic"><use href="#ic-close"/></svg> Refazer erros (${wrong.length})</button>`:''}
+      <button class="btn btn-grad" style="flex:1" onclick="startTest()">Nova prova</button>
+      <button class="btn btn-glass" onclick="exportTestToDrive()"><span class="nav-emo emo">📁</span> Exportar</button>
+      <button class="btn btn-ghost" onclick="showDone()">Modos</button></div>`;
+}
+function retryWrongTest(){
+  const w=TEST.filter(q=>q._wrong).map(q=>{const c={...q};delete c._wrong;return c;});
+  if(!w.length)return;TEST=w;testGraded=false;renderTest();testT0=Date.now();
+  stopTestTimer();if(testCfg.timed)testTick=setInterval(updTestTimer,1000);
+}
+function exportTestToDrive(){
+  const cards=TEST.map(q=>({q:q.q,a:q.type==='tf'?`${q.answer?'Verdadeiro':'Falso'} — ${q.shown}`:q.correct}));
+  const results=TEST.map(q=>q._wrong===undefined?undefined:!q._wrong);
+  exportSessionToDrive('Simulado',cards,results);
 }
 
 // ---- MATCH mode ----
@@ -908,12 +1013,17 @@ async function genSim(){
   const topic=document.getElementById('sim-topic').value.trim();
   if(!topic){simSetStatus('Digite um tema.','err');return;}
   if(!groqKey()){simSetStatus('Configure a chave da Groq em Configurações para gerar simulados.','err');return;}
-  const n=document.getElementById('sim-count').value,diff=document.getElementById('sim-diff').value;
+  const n=Math.min(70,Math.max(1,parseInt(document.getElementById('sim-count').value,10)||10));
+  const diff=document.getElementById('sim-diff').value;
   const btn=document.getElementById('sim-gen');btn.disabled=true;
   simSetStatus('Gerando simulado…','muted');document.getElementById('sim-body').innerHTML='';
   try{
+    const ultra=/ultra/i.test(diff);
     const sys='Você gera simulados de múltipla escolha. Responda APENAS com um array JSON válido, sem texto extra, sem markdown. '+
-      'Cada item: {"q":"pergunta","options":["a","b","c","d"],"answer":<índice 0-3 da correta>,"explanation":"por que"}. Em português.';
+      'Cada item: {"q":"pergunta","options":["a","b","c","d"],"answer":<índice 0-3 da correta>,"explanation":"por que"}. Em português.'+
+      (ultra?' MODO ULTRA DIFÍCIL: questões de nível especialista/olimpíada, exigindo raciocínio profundo e várias etapas. '+
+        'Use pegadinhas sutis, distratores muito plausíveis e próximos da resposta certa, casos-limite e exceções pouco conhecidas. '+
+        'Nada de perguntas triviais ou de definição direta. A explicação deve justificar a correta E por que cada distrator falha.':'');
     const user=`Crie ${n} questões de nível ${diff} sobre: ${topic}. Retorne só o JSON.`;
     const raw=await groqChat([{role:'system',content:sys},{role:'user',content:user}]);
     simQuiz=parseQuiz(raw);
@@ -1062,6 +1172,7 @@ function renderDrive(){
     folderPath(driveCwd).forEach((f,i,a)=>{h+=`<span class="sep">/</span><span class="cr ${i===a.length-1?'cur':''}" onclick="goDrive('${f.id}')">${esc(f.name)}</span>`;});
     cr.innerHTML=h;
   }
+  const nfBtn=document.getElementById('drive-newfolder');if(nfBtn)nfBtn.style.display=driveCwd?'none':'';
   const folders=driveFolders.filter(f=>(f.parent||null)===driveCwd);
   const files=driveFiles.filter(f=>(f.folder||null)===driveCwd);
   if(!folders.length&&!files.length){g.innerHTML='<p class="muted" style="grid-column:1/-1;text-align:center;padding:20px">Pasta vazia.</p>';if(window.twemoji)twemoji.parse(document.getElementById('view-drive'));return;}
@@ -1100,6 +1211,7 @@ function renderDrive(){
 function goDrive(id){driveCwd=id;renderDrive();}
 const DRIVE_SUBFOLDERS=['Flashcards','Notas','Simulados'];
 function mkFolder(){
+  if(driveCwd){toast('Só dá pra criar pastas na raiz','err');return;}
   const name=(prompt('Nome da pasta:')||'').trim();if(!name)return;
   const id=uid('d');
   driveFolders.push({id,name,parent:driveCwd});
@@ -1200,26 +1312,28 @@ function initDrive(){
 
 // ===== Exportar sessão para o Drive (monta área de estudos) =====
 let _expMd=null;
-function sessionMarkdown(label){
-  const cards=(STUDY_CARDS||[]);
+function sessionMarkdown(label,cards,results){
+  cards=cards||(STUDY_CARDS||[]);
+  const res=results||sResults;
   const date=new Date().toLocaleString('pt-BR');
   let head=`# ${label}\n\n_Exportado do Lumora · ${date}_\n\n`;
-  if(sResults&&sResults.some(r=>r!==undefined)){
-    const ok=sResults.filter(r=>r===true).length;
-    const total=sResults.filter(r=>r!==undefined).length||cards.length;
+  if(res&&res.some(r=>r!==undefined)){
+    const ok=res.filter(r=>r===true).length;
+    const total=res.filter(r=>r!==undefined).length||cards.length;
     head+=`**Resultado:** ${ok}/${total} · ${total?Math.round(ok/total*100):0}% de acerto\n\n`;
   }
   const body=cards.map((c,i)=>{
-    const mk=(sResults&&sResults[i]===true)?'✅':(sResults&&sResults[i]===false)?'❌':'•';
+    const mk=(res&&res[i]===true)?'✅':(res&&res[i]===false)?'❌':'•';
     return `### ${i+1}. ${c.q}\n${mk} ${c.a}\n`;
   }).join('\n');
   return head+'---\n\n'+(body||'_Sem cards nesta sessão._');
 }
 function safeName(s){return String(s||'sessao').replace(/[\\/:*?"<>|\n]+/g,' ').trim().slice(0,70);}
-function exportSessionToDrive(label){
-  if(!STUDY_CARDS||!STUDY_CARDS.length){toast('Nenhum item para exportar');return;}
+function exportSessionToDrive(label,cards,results){
+  cards=cards||(STUDY_CARDS||[]);
+  if(!cards.length){toast('Nenhum item para exportar');return;}
   loadDrive();
-  _expMd=sessionMarkdown(label);
+  _expMd=sessionMarkdown(label,cards,results);
   const defName=safeName(label+' — '+new Date().toLocaleDateString('pt-BR'))+'.md';
   const opts=`<option value="">🏠 Mesa de estudos (raiz)</option>`+
     driveFolders.map(fd=>{const path=folderPath(fd.id).map(x=>x.name).join(' / ');

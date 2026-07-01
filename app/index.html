@@ -558,7 +558,7 @@
     </div>
     <div class="drive-bar">
       <div class="drive-crumbs" id="drive-crumbs"></div>
-      <button class="btn btn-grad" onclick="mkFolder()"><span class="nav-emo emo">📂</span> Nova pasta</button>
+      <button class="btn btn-grad" id="drive-newfolder" onclick="mkFolder()"><span class="nav-emo emo">📂</span> Nova pasta</button>
     </div>
     <div class="grid g4" id="drive-grid" style="margin-top:14px"></div>
     <div class="dv-modal" id="dv-modal" hidden>
@@ -628,10 +628,10 @@
       <label class="set-lbl">Tema / assunto</label>
       <input id="sim-topic" placeholder="Ex.: Ciclo de Krebs, Revolução Francesa, Funções em JS…" autocomplete="off">
       <div class="sim-opts">
-        <div><label class="set-lbl">Nº de questões</label>
-          <select id="sim-count"><option>5</option><option selected>10</option><option>15</option><option>20</option></select></div>
+        <div><label class="set-lbl">Nº de questões (1–70)</label>
+          <input id="sim-count" type="number" min="1" max="70" value="10" inputmode="numeric"></div>
         <div><label class="set-lbl">Dificuldade</label>
-          <select id="sim-diff"><option value="fácil">Fácil</option><option value="médio" selected>Médio</option><option value="difícil">Difícil</option></select></div>
+          <select id="sim-diff"><option value="fácil">Fácil</option><option value="médio" selected>Médio</option><option value="difícil">Difícil</option><option value="ultra difícil">Ultra difícil 🔥</option></select></div>
       </div>
       <div class="set-actions">
         <button class="btn btn-grad" id="sim-gen" onclick="genSim()">Gerar simulado</button>
