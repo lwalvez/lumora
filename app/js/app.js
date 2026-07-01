@@ -802,6 +802,7 @@ function renderFDeckGrid(root){
           <div class="go">
             <button class="btn btn-grad btn-sm" onclick="event.stopPropagation();studyFDeck('${d.id}')"><svg class="ic"><use href="#ic-brain"/></svg> Estudar</button>
             <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openFDeck('${d.id}')">Editar</button>
+            <button class="btn btn-ghost btn-sm" title="Exportar" onclick="event.stopPropagation();exportFDeck('${d.id}')"><span class="nav-emo emo">📁</span></button>
           </div>
         </div>`).join('')}
       <div class="fcd add" onclick="newFDeck()"><svg class="ic"><use href="#ic-plus"/></svg>Criar novo deck${activeFolder!=='all'&&activeFolder!=='none'?' em '+esc(folderName(activeFolder)):''}</div>
@@ -815,6 +816,7 @@ function renderFDeckDetail(root){
         <span class="em emo">${d.e}</span> ${esc(d.title)}</div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-grad btn-sm" onclick="studyFDeck('${d.id}')" ${d.cards.length?'':'disabled style=opacity:.5'}><svg class="ic"><use href="#ic-brain"/></svg> Estudar (${d.cards.length})</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportFDeck('${d.id}')" ${d.cards.length?'':'disabled style=opacity:.5'}><span class="nav-emo emo">📁</span> Exportar</button>
         <button class="btn btn-ghost btn-sm" onclick="delFDeck('${d.id}')"><svg class="ic"><use href="#ic-trash"/></svg></button>
       </div>
     </div>
@@ -843,6 +845,12 @@ function renderFDeckDetail(root){
     </div>`;
 }
 function openFDeck(id){activeFDeck=id;renderFlash();}
+function exportFDeck(id){
+  const d=FDECKS.find(x=>x.id===id);if(!d)return;
+  if(!d.cards.length){toast('Deck vazio — nada para exportar');return;}
+  const cards=d.cards.map(c=>({q:c.front,a:c.back}));
+  exportSessionToDrive('Flashcards · '+d.title,cards);
+}
 function newFDeck(){
   const title=prompt('Nome do deck:','Novo deck');if(title===null)return;
   const d={id:'fd'+Date.now(),e:'🃏',title:title.trim()||'Novo deck',cards:[],folderId:curFolderId()};
