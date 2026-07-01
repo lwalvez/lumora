@@ -243,7 +243,12 @@ function startTest(){
   const cards=STUDY_CARDS,answers=cards.map(c=>c.a);
   TEST=cards.slice(0,Math.min(cards.length,10)).map((c,i)=>{
     const t=i%3;
-    if(t===0){return{type:'mc',q:c.q,correct:c.a,opts:shuffle([c.a,...sample(answers.filter(a=>a!==c.a),3)])};}
+    if(t===0){
+      // pool de distratores: únicos (normalizados) e diferentes da correta
+      const seen=new Set([norm(c.a)]);
+      const pool=answers.filter(a=>{const k=norm(a);if(seen.has(k))return false;seen.add(k);return true;});
+      return{type:'mc',q:c.q,correct:c.a,opts:shuffle([c.a,...sample(pool,3)])};
+    }
     if(t===1){const good=Math.random()<0.5;const shown=good?c.a:(sample(answers.filter(a=>a!==c.a),1)[0]||c.a);return{type:'tf',q:c.q,shown,answer:good};}
     return{type:'wr',q:c.q,correct:c.a};
   });
@@ -515,7 +520,7 @@ function renderNotes(){
   renderEditor();
 }
 function setNoteFilter(t){noteFilter=t;renderNotes();}
-function esc(s){return(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function esc(s){return(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function openNote(id){activeNote=id;renderNotes();}
 function newNote(){
   const n={id:'n'+Date.now(),title:'',tag:'Geral',body:'',updated:Date.now()};
