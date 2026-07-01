@@ -961,12 +961,14 @@ function startEmoji(){
 const GROQ_KEY='lumora_groq_key',GROQ_MODEL='lumora_groq_model';
 function groqKey(){return localStorage.getItem(GROQ_KEY)||'';}
 function groqModel(){return localStorage.getItem(GROQ_MODEL)||'llama-3.3-70b-versatile';}
-async function groqChat(messages){
+async function groqChat(messages,maxTokens){
   const key=groqKey();if(!key)throw new Error('sem chave');
+  const body={model:groqModel(),messages,temperature:0.6};
+  if(maxTokens)body.max_tokens=maxTokens;
   const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-    body:JSON.stringify({model:groqModel(),messages,temperature:0.6})
+    body:JSON.stringify(body)
   });
   if(!res.ok){let d='';try{d=(await res.json()).error?.message||''}catch(e){}throw new Error((res.status)+(d?' · '+d:''));}
   const j=await res.json();return j.choices?.[0]?.message?.content?.trim()||'(resposta vazia)';
@@ -1025,7 +1027,7 @@ async function genSim(){
         'Use pegadinhas sutis, distratores muito plausíveis e próximos da resposta certa, casos-limite e exceções pouco conhecidas. '+
         'Nada de perguntas triviais ou de definição direta. A explicação deve justificar a correta E por que cada distrator falha.':'');
     const user=`Crie ${n} questões de nível ${diff} sobre: ${topic}. Retorne só o JSON.`;
-    const raw=await groqChat([{role:'system',content:sys},{role:'user',content:user}]);
+    const raw=await groqChat([{role:'system',content:sys},{role:'user',content:user}],Math.min(32000,Math.max(2000,n*230)));
     simQuiz=parseQuiz(raw);
     if(!simQuiz.length)throw new Error('não consegui interpretar as questões');
     simSetStatus('✓ '+simQuiz.length+' questões geradas.','ok');
