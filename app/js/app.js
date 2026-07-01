@@ -14,7 +14,7 @@ function toggleTheme(){
 document.documentElement.setAttribute('data-theme',localStorage.getItem('lumora-theme')||'dark');
 
 // ---- navigation ----
-const TITLES={today:'Hoje',library:'Biblioteca',flashcards:'Flashcards',notes:'Notas',study:'Estudar',import:'Importar',drive:'Drive',progress:'Progresso',sim:'Simulados',settings:'Configurações',tutor:'Tutor IA',arena:'Arena'};
+const TITLES={today:'Hoje',library:'Biblioteca',flashcards:'Flashcards',notes:'Notas',study:'Estudar',import:'Importar',drive:'Mesa de estudos',progress:'Progresso',sim:'Simulados',settings:'Configurações',tutor:'Tutor IA',arena:'Arena'};
 function go(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+view).classList.add('active');
@@ -222,7 +222,7 @@ function doneScreen(){
 function showDone(){sIdx=SESSION_LEN;sFlip=false;document.getElementById('session').innerHTML=doneScreen();}
 function startMode(k){
   if(k==='learn'){startSession(STUDY_CARDS,studyBack);return;}
-  if(k==='test'){startTest();return;}
+  if(k==='test'){openTestSetup();return;}
   if(k==='match'){startMatch();return;}
   toast(k==='blast'?'Blast é para turmas/escolas — disponível no plano Schools.':'Recurso em breve nesta demo.');
 }
@@ -1058,7 +1058,7 @@ function renderDrive(){
   const g=document.getElementById('drive-grid'),cr=document.getElementById('drive-crumbs');if(!g)return;
   driveUrls.forEach(u=>URL.revokeObjectURL(u));driveUrls=[];
   if(cr){
-    let h=`<span class="cr ${driveCwd?'':'cur'}" onclick="goDrive(null)"><span class="nav-emo emo">🏠</span> Drive</span>`;
+    let h=`<span class="cr ${driveCwd?'':'cur'}" onclick="goDrive(null)"><span class="nav-emo emo">🏠</span> Mesa de estudos</span>`;
     folderPath(driveCwd).forEach((f,i,a)=>{h+=`<span class="sep">/</span><span class="cr ${i===a.length-1?'cur':''}" onclick="goDrive('${f.id}')">${esc(f.name)}</span>`;});
     cr.innerHTML=h;
   }
@@ -1156,7 +1156,7 @@ async function openDriveFile(id){
 function moveDriveFile(id){
   const f=driveFiles.find(x=>x.id===id);if(!f)return;
   const cur=f.folder||null;
-  let rows=`<div class="mv ${cur===null?'':''}" ${cur===null?'data-disabled':''} onclick="doMove('${id}',null)"><span class="nav-emo emo">🏠</span> Drive (raiz)</div>`;
+  let rows=`<div class="mv ${cur===null?'':''}" ${cur===null?'data-disabled':''} onclick="doMove('${id}',null)"><span class="nav-emo emo">🏠</span> Mesa de estudos (raiz)</div>`;
   driveFolders.forEach(fd=>{
     const path=folderPath(fd.id).map(x=>x.name).join(' / ');
     rows+=`<div class="mv" ${fd.id===cur?'data-disabled':''} onclick="doMove('${id}','${fd.id}')"><span class="nav-emo emo">📁</span> ${esc(path)}</div>`;
@@ -1221,10 +1221,10 @@ function exportSessionToDrive(label){
   loadDrive();
   _expMd=sessionMarkdown(label);
   const defName=safeName(label+' — '+new Date().toLocaleDateString('pt-BR'))+'.md';
-  const opts=`<option value="">🏠 Drive (raiz)</option>`+
+  const opts=`<option value="">🏠 Mesa de estudos (raiz)</option>`+
     driveFolders.map(fd=>{const path=folderPath(fd.id).map(x=>x.name).join(' / ');
       return `<option value="${esc(fd.id)}">📁 ${esc(path)}</option>`;}).join('');
-  openDvModal(`<h3 style="margin-bottom:14px"><span class="nav-emo emo">📁</span> Exportar para o Drive</h3>
+  openDvModal(`<h3 style="margin-bottom:14px"><span class="nav-emo emo">📁</span> Exportar para a Mesa de estudos</h3>
     <div style="display:flex;flex-direction:column;gap:12px">
       <label style="font-size:13px;color:var(--muted)">Nome do arquivo
         <input id="exp-name" class="t-input" style="width:100%;margin-top:5px" value="${esc(defName)}"></label>
@@ -1244,11 +1244,11 @@ async function confirmExport(){
   if(nf){const id=uid('d');driveFolders.push({id,name:nf,parent:folder});folder=id;}
   const blob=new File([_expMd||''],name,{type:'text/markdown'});
   const id=uid('f');
-  try{await dvPut(id,blob);}catch(e){alert('Falha ao salvar no Drive (arquivo muito grande?).');return;}
+  try{await dvPut(id,blob);}catch(e){alert('Falha ao salvar na Mesa de estudos (arquivo muito grande?).');return;}
   driveFiles.unshift({id,folder:folder||null,name,size:blob.size,type:'text/markdown',date:new Date().toLocaleDateString('pt-BR')});
   saveDrive();closeDvModal();
   if(window.cloudSync)cloudSync();
-  toast('Salvo no Drive 📁 — abrindo a pasta');
+  toast('Salvo na Mesa de estudos 📁 — abrindo a pasta');
   driveCwd=folder||null;go('drive');renderDrive();
 }
 
