@@ -183,7 +183,7 @@ document.addEventListener('keydown',e=>{
 const MODES=[
   {k:'learn',n:'Learn',e:'🧠',d:'IA + repetição espaçada adaptam as perguntas e reforçam o que você erra. Mistura múltipla escolha, digitação e V/F.'},
   {k:'test',n:'Test',e:'📝',d:'Gera provas automáticas: múltipla escolha, V/F, escrita e correspondência. Refaça quantas vezes quiser.'},
-  {k:'match',n:'Match',e:'⚡',d:'Minijogo: combine termos e definições o mais rápido possível. Cronometrado.'},
+  {k:'match',n:'Match',e:'⚡️',d:'Minijogo: combine termos e definições o mais rápido possível. Cronometrado.'},
   {k:'blast',n:'Blast',e:'🚀',d:'Jogo colaborativo em equipes. Alunos respondem certo para avançar.',tag:'Escolas'},
   {k:'qchat',n:'Q-Chat',e:'💬',d:'Tutor conversacional com IA: faz perguntas, explica conceitos e conduz a sessão.',tag:'Pro'},
   {k:'expert',n:'Expert Solutions',e:'🎓',d:'Explicações passo a passo de exercícios de livros didáticos.',tag:'Pro'},
@@ -204,6 +204,7 @@ function doneScreen(){
       <div style="display:flex;gap:12px;justify-content:center;margin-top:24px;flex-wrap:wrap">
         ${err?`<button class="btn btn-glass" onclick="redoWrong()"><svg class="ic"><use href="#ic-close"/></svg> Refazer os que errei (${err}) <kbd>←</kbd></button>`:''}
         <button class="btn btn-grad" onclick="redoAll()"><svg class="ic"><use href="#ic-brain"/></svg> Refazer todos <kbd>→</kbd></button>
+        <button class="btn btn-glass" onclick="exportSessionToDrive('Sessão de estudo')"><span class="nav-emo emo">📁</span> Exportar para o Drive</button>
         <button class="btn btn-ghost" onclick="go(studyBack)">Voltar</button>
       </div>
     </div>
@@ -291,7 +292,7 @@ function gradeTest(){
   document.getElementById('test-body').insertAdjacentHTML('beforebegin',
     `<div class="t-result glass">Resultado: <b>${ok}/${TEST.length}</b> · ${pct}%</div>`);
   document.querySelector('#session .btn-grad').outerHTML=
-    `<div style="display:flex;gap:10px;margin-top:8px"><button class="btn btn-grad" style="flex:1" onclick="startTest()">Refazer prova</button><button class="btn btn-ghost" onclick="showDone()">Modos</button></div>`;
+    `<div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap"><button class="btn btn-grad" style="flex:1" onclick="startTest()">Refazer prova</button><button class="btn btn-glass" onclick="exportSessionToDrive('Simulado')"><span class="nav-emo emo">📁</span> Exportar para o Drive</button><button class="btn btn-ghost" onclick="showDone()">Modos</button></div>`;
 }
 
 // ---- MATCH mode ----
@@ -307,7 +308,7 @@ function renderMatch(){
   const el=document.getElementById('session');
   el.innerHTML=`
     <div class="sess-top"><span class="x" onclick="stopMatch();showDone()"><svg class="ic"><use href="#ic-close"/></svg></span>
-      <b style="flex:1">⚡ Match</b><span class="muted" id="m-time">0.0s</span></div>
+      <b style="flex:1">⚡️ Match</b><span class="muted" id="m-time">0.0s</span></div>
     <div class="match-grid">${MATCH.tiles.map((t,i)=>
       `<div class="mtile glass" data-i="${i}" onclick="pickTile(${i})">${esc(t.x)}</div>`).join('')}</div>`;
 }
@@ -329,10 +330,11 @@ function stopMatch(){clearInterval(MATCH.timer);}
 function finishMatch(){
   stopMatch();const time=((Date.now()-MATCH.start)/1000).toFixed(1);
   document.getElementById('session').innerHTML=`<div class="sess-done glass">
-    <div class="big emo">⚡</div><h2 style="margin:14px 0 4px">Combinou tudo!</h2>
+    <div class="big emo">⚡️</div><h2 style="margin:14px 0 4px">Combinou tudo!</h2>
     <p class="muted" style="margin-bottom:20px">Tempo: <b>${time}s</b></p>
     <div style="display:flex;gap:10px;justify-content:center">
       <button class="btn btn-grad" onclick="startMatch()">Jogar de novo</button>
+      <button class="btn btn-glass" onclick="exportSessionToDrive('Match')"><span class="nav-emo emo">📁</span> Exportar para o Drive</button>
       <button class="btn btn-ghost" onclick="showDone()">Modos</button></div></div>`;
 }
 
@@ -1046,7 +1048,7 @@ function saveDrive(){
 }
 function folderPath(id){const p=[];let c=id;while(c){const f=driveFolders.find(x=>x.id===c);if(!f)break;p.unshift(f);c=f.parent;}return p;}
 function descendants(id){const out=[id];driveFolders.filter(f=>f.parent===id).forEach(f=>out.push(...descendants(f.id)));return out;}
-function esc(s){return String(s).replace(/</g,'&lt;').replace(/'/g,'&#39;');}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 function renderDrive(){
   const g=document.getElementById('drive-grid'),cr=document.getElementById('drive-crumbs');if(!g)return;
@@ -1186,6 +1188,60 @@ function initDrive(){
   ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
   drop.addEventListener('drop',e=>{if(e.dataTransfer.files&&e.dataTransfer.files.length)addDriveFiles(e.dataTransfer.files);});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){const m=document.getElementById('dv-modal');if(m&&!m.hidden)closeDvModal();}});
+}
+
+// ===== Exportar sessão para o Drive (monta área de estudos) =====
+let _expMd=null;
+function sessionMarkdown(label){
+  const cards=(STUDY_CARDS||[]);
+  const date=new Date().toLocaleString('pt-BR');
+  let head=`# ${label}\n\n_Exportado do Lumora · ${date}_\n\n`;
+  if(sResults&&sResults.some(r=>r!==undefined)){
+    const ok=sResults.filter(r=>r===true).length;
+    const total=sResults.filter(r=>r!==undefined).length||cards.length;
+    head+=`**Resultado:** ${ok}/${total} · ${total?Math.round(ok/total*100):0}% de acerto\n\n`;
+  }
+  const body=cards.map((c,i)=>{
+    const mk=(sResults&&sResults[i]===true)?'✅':(sResults&&sResults[i]===false)?'❌':'•';
+    return `### ${i+1}. ${c.q}\n${mk} ${c.a}\n`;
+  }).join('\n');
+  return head+'---\n\n'+(body||'_Sem cards nesta sessão._');
+}
+function safeName(s){return String(s||'sessao').replace(/[\\/:*?"<>|\n]+/g,' ').trim().slice(0,70);}
+function exportSessionToDrive(label){
+  if(!STUDY_CARDS||!STUDY_CARDS.length){toast('Nenhum item para exportar');return;}
+  loadDrive();
+  _expMd=sessionMarkdown(label);
+  const defName=safeName(label+' — '+new Date().toLocaleDateString('pt-BR'))+'.md';
+  const opts=`<option value="">🏠 Drive (raiz)</option>`+
+    driveFolders.map(fd=>{const path=folderPath(fd.id).map(x=>x.name).join(' / ');
+      return `<option value="${esc(fd.id)}">📁 ${esc(path)}</option>`;}).join('');
+  openDvModal(`<h3 style="margin-bottom:14px"><span class="nav-emo emo">📁</span> Exportar para o Drive</h3>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <label style="font-size:13px;color:var(--muted)">Nome do arquivo
+        <input id="exp-name" class="t-input" style="width:100%;margin-top:5px" value="${esc(defName)}"></label>
+      <label style="font-size:13px;color:var(--muted)">Pasta de destino
+        <select id="exp-folder" class="t-input" style="width:100%;margin-top:5px">${opts}</select></label>
+      <label style="font-size:13px;color:var(--muted)">Ou crie uma nova pasta
+        <input id="exp-newfolder" class="t-input" style="width:100%;margin-top:5px" placeholder="ex.: Biologia · Prova final"></label>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
+        <button class="btn btn-glass" onclick="closeDvModal()">Cancelar</button>
+        <button class="btn btn-grad" onclick="confirmExport()">Salvar no Drive</button></div>
+    </div>`);
+}
+async function confirmExport(){
+  const name=safeName((document.getElementById('exp-name').value||'').replace(/\.md$/i,''))+'.md';
+  let folder=document.getElementById('exp-folder').value||null;
+  const nf=(document.getElementById('exp-newfolder').value||'').trim();
+  if(nf){const id=uid('d');driveFolders.push({id,name:nf,parent:folder});folder=id;}
+  const blob=new File([_expMd||''],name,{type:'text/markdown'});
+  const id=uid('f');
+  try{await dvPut(id,blob);}catch(e){alert('Falha ao salvar no Drive (arquivo muito grande?).');return;}
+  driveFiles.unshift({id,folder:folder||null,name,size:blob.size,type:'text/markdown',date:new Date().toLocaleDateString('pt-BR')});
+  saveDrive();closeDvModal();
+  if(window.cloudSync)cloudSync();
+  toast('Salvo no Drive 📁 — abrindo a pasta');
+  driveCwd=folder||null;go('drive');renderDrive();
 }
 
 // init
