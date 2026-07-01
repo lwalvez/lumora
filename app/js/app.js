@@ -14,7 +14,7 @@ function toggleTheme(){
 document.documentElement.setAttribute('data-theme',localStorage.getItem('lumora-theme')||'dark');
 
 // ---- navigation ----
-const TITLES={today:'Hoje',library:'Biblioteca',flashcards:'Flashcards',notes:'Notas',study:'Estudar',import:'Importar',drive:'Drive',progress:'Progresso',settings:'Configurações',tutor:'Tutor IA',arena:'Arena'};
+const TITLES={today:'Hoje',library:'Biblioteca',flashcards:'Flashcards',notes:'Notas',study:'Estudar',import:'Importar',drive:'Drive',progress:'Progresso',sim:'Simulados',settings:'Configurações',tutor:'Tutor IA',arena:'Arena'};
 function go(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+view).classList.add('active');
@@ -844,6 +844,69 @@ async function testGroq(){
   catch(e){setGroqStatus('✗ Falhou: '+e.message,'err');}
 }
 function toggleGroqKey(){const k=document.getElementById('groq-key');if(k)k.type=k.type==='password'?'text':'password';}
+
+// ===== Simulados (gerador via IA) =====
+let simQuiz=[];
+function simSetStatus(m,c){const el=document.getElementById('sim-status');if(el){el.textContent=m;el.className='set-status '+(c||'muted');}}
+function parseQuiz(txt){
+  let s=txt.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+  const a=s.indexOf('['),b=s.lastIndexOf(']');if(a>=0&&b>a)s=s.slice(a,b+1);
+  const arr=JSON.parse(s);
+  return arr.map(q=>({q:String(q.q||q.question||''),options:(q.options||q.alternativas||[]).map(String),
+    answer:Number(q.answer??q.correct??q.resposta??0),explanation:String(q.explanation||q.explicacao||'')}))
+    .filter(q=>q.q&&q.options.length>=2);
+}
+async function genSim(){
+  const topic=document.getElementById('sim-topic').value.trim();
+  if(!topic){simSetStatus('Digite um tema.','err');return;}
+  if(!groqKey()){simSetStatus('Configure a chave da Groq em Configurações para gerar simulados.','err');return;}
+  const n=document.getElementById('sim-count').value,diff=document.getElementById('sim-diff').value;
+  const btn=document.getElementById('sim-gen');btn.disabled=true;
+  simSetStatus('Gerando simulado…','muted');document.getElementById('sim-body').innerHTML='';
+  try{
+    const sys='Você gera simulados de múltipla escolha. Responda APENAS com um array JSON válido, sem texto extra, sem markdown. '+
+      'Cada item: {"q":"pergunta","options":["a","b","c","d"],"answer":<índice 0-3 da correta>,"explanation":"por que"}. Em português.';
+    const user=`Crie ${n} questões de nível ${diff} sobre: ${topic}. Retorne só o JSON.`;
+    const raw=await groqChat([{role:'system',content:sys},{role:'user',content:user}]);
+    simQuiz=parseQuiz(raw);
+    if(!simQuiz.length)throw new Error('não consegui interpretar as questões');
+    simSetStatus('✓ '+simQuiz.length+' questões geradas.','ok');
+    renderSimQuiz();
+  }catch(e){simSetStatus('✗ Erro: '+e.message,'err');}
+  finally{btn.disabled=false;}
+}
+function renderSimQuiz(){
+  const box=document.getElementById('sim-body');
+  box.innerHTML=simQuiz.map((q,i)=>`
+    <div class="panel glass sim-q" id="simq-${i}">
+      <div class="qh"><span class="n">${i+1}.</span><span>${esc(q.q)}</span></div>
+      ${q.options.map((o,j)=>`<label class="sim-opt" data-opt="${j}">
+        <input type="radio" name="simq-${i}" value="${j}"> <span>${esc(o)}</span></label>`).join('')}
+      <div class="sim-exp" style="display:none">${esc(q.explanation)}</div>
+    </div>`).join('')+
+    `<div class="set-actions"><button class="btn btn-grad" onclick="submitSim()">Corrigir</button>
+       <button class="btn" onclick="go('sim');document.getElementById('sim-body').innerHTML='';document.getElementById('sim-topic').focus()">Novo</button></div>`;
+  window.scrollTo?box.scrollIntoView({behavior:'smooth',block:'start'}):0;
+}
+function submitSim(){
+  let score=0;
+  simQuiz.forEach((q,i)=>{
+    const sel=document.querySelector(`input[name="simq-${i}"]:checked`);
+    const picked=sel?Number(sel.value):-1;if(picked===q.answer)score++;
+    document.querySelectorAll(`#simq-${i} .sim-opt`).forEach(el=>{
+      const j=Number(el.dataset.opt);
+      if(j===q.answer)el.classList.add('correct');
+      else if(j===picked)el.classList.add('wrong');
+      el.querySelector('input').disabled=true;
+    });
+    const exp=document.querySelector(`#simq-${i} .sim-exp`);if(exp&&q.explanation)exp.style.display='block';
+  });
+  const pct=Math.round(score/simQuiz.length*100);
+  const card=document.createElement('div');card.className='panel glass sim-score';card.style.marginTop='16px';
+  card.innerHTML=`<div class="big" style="color:${pct>=70?'var(--success)':pct>=50?'var(--warning)':'var(--danger,#ff5a5a)'}">${score}/${simQuiz.length}</div>
+    <div class="stat-lbl">${pct}% de acerto</div>`;
+  const box=document.getElementById('sim-body');box.prepend(card);card.scrollIntoView({behavior:'smooth',block:'center'});
+}
 
 // ===== Sidebar · seções visíveis =====
 const NAV_HIDDEN_KEY='lumora_hidden_nav';

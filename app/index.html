@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumora — App</title>
-<link rel="stylesheet" href="css/style.css?v=31">
-<script src="js/icons.js?v=31"></script>
+<link rel="stylesheet" href="css/style.css?v=32">
+<script src="js/icons.js?v=32"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js?v=31"></script>
+<script src="js/supabase.js?v=32"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
 <style>
   body{display:flex;min-height:100vh}
@@ -289,6 +289,25 @@
     border-radius:50%;background:var(--muted);transition:.25s}
   .sw input:checked+.track{background:var(--grad);border-color:transparent}
   .sw input:checked+.track::before{transform:translateX(18px);background:#fff}
+  /* Simulados */
+  #view-sim input,#view-sim select{width:100%;padding:12px 14px;border-radius:var(--r-md);
+    border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:14px;font-family:inherit}
+  #view-sim input:focus,#view-sim select:focus{outline:none;border-color:var(--primary)}
+  .sim-opts{display:flex;gap:12px;margin-top:4px}
+  .sim-opts>div{flex:1}
+  .sim-q{padding:20px 22px;border-radius:var(--r-lg);margin-top:16px}
+  .sim-q .qh{font-weight:700;font-size:15px;margin-bottom:14px;display:flex;gap:9px}
+  .sim-q .qh .n{color:var(--primary);flex-shrink:0}
+  .sim-opt{display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:var(--r-md);
+    border:1px solid var(--border);margin-bottom:9px;cursor:pointer;transition:.2s;font-size:14px}
+  .sim-opt:hover{border-color:var(--primary);background:var(--surface-2)}
+  .sim-opt input{width:auto;flex-shrink:0;accent-color:var(--primary)}
+  .sim-opt.correct{border-color:var(--success);background:rgba(52,224,161,.12)}
+  .sim-opt.wrong{border-color:var(--danger,#ff5a5a);background:rgba(255,90,90,.12)}
+  .sim-exp{font-size:13px;color:var(--text-2);margin-top:8px;padding:11px 14px;border-radius:var(--r-md);
+    background:var(--surface-2);border-left:3px solid var(--primary)}
+  .sim-score{text-align:center;padding:26px}
+  .sim-score .big{font-size:44px;font-weight:800;letter-spacing:-.02em}
   .imp{padding:26px 18px;border-radius:var(--r-lg);text-align:center;cursor:pointer;
     transition:transform .4s var(--spring),box-shadow .35s}
   .imp:hover{transform:translateY(-4px);box-shadow:var(--glow)}
@@ -419,6 +438,7 @@
   <div class="navlink" data-view="progress"><span class="nav-emo emo">📊</span>Progresso</div>
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor IA</div>
   <div class="navlink" data-view="arena"><span class="nav-emo emo">🎮</span>Arena</div>
+  <div class="navlink" data-view="sim"><span class="nav-emo emo">📝</span>Simulados</div>
   <div class="navlink" data-view="settings"><span class="nav-emo emo">⚙️</span>Configurações</div>
   <div class="side-foot">
     <div class="acct">
@@ -578,6 +598,27 @@
     </div>
   </section>
 
+  <!-- SIMULADOS -->
+  <section class="view" id="view-sim">
+    <div class="panel glass" id="sim-config" style="max-width:720px">
+      <h3><svg><use href="#ic-spark"/></svg> Gerador de simulados</h3>
+      <p class="muted" style="font-size:13px;margin-bottom:16px">A IA cria uma prova de múltipla escolha sobre o tema que você escolher.</p>
+      <label class="set-lbl">Tema / assunto</label>
+      <input id="sim-topic" placeholder="Ex.: Ciclo de Krebs, Revolução Francesa, Funções em JS…" autocomplete="off">
+      <div class="sim-opts">
+        <div><label class="set-lbl">Nº de questões</label>
+          <select id="sim-count"><option>5</option><option selected>10</option><option>15</option><option>20</option></select></div>
+        <div><label class="set-lbl">Dificuldade</label>
+          <select id="sim-diff"><option value="fácil">Fácil</option><option value="médio" selected>Médio</option><option value="difícil">Difícil</option></select></div>
+      </div>
+      <div class="set-actions">
+        <button class="btn btn-grad" id="sim-gen" onclick="genSim()">Gerar simulado</button>
+      </div>
+      <div id="sim-status" class="set-status muted"></div>
+    </div>
+    <div id="sim-body" style="max-width:720px"></div>
+  </section>
+
   <!-- SETTINGS -->
   <section class="view" id="view-settings">
     <div class="panel glass" style="max-width:640px">
@@ -620,6 +661,6 @@
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
 </nav>
 
-<script src="js/app.js?v=31"></script>
+<script src="js/app.js?v=32"></script>
 </body>
 </html>
