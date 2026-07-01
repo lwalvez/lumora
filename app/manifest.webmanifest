@@ -1,0 +1,16 @@
+{
+  "name": "Lumora — Estudos com IA",
+  "short_name": "Lumora",
+  "description": "Flashcards, simulados, notas e tutor IA. Estude com repetição espaçada e memória de longo prazo.",
+  "lang": "pt-BR",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#06060A",
+  "theme_color": "#7C5CFF",
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

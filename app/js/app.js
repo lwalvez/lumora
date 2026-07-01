@@ -231,12 +231,7 @@ function startMode(k){
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function sample(arr,n){return shuffle(arr).slice(0,n);}
 function norm(s){return(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,'').trim();}
-function toast(msg){
-  let t=document.getElementById('toast');
-  if(!t){t=document.createElement('div');t.id='toast';t.className='toast glass';document.body.appendChild(t);}
-  t.textContent=msg;t.classList.add('show');
-  clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),3200);
-}
+// toast unificado — ver função toast(msg,cls) mais abaixo (pill #dv-toast, suporta erro)
 
 // ---- TEST mode (gerador de simulados a partir do deck) ----
 let TEST=[],testCfg={n:10,types:['mc','tf','wr'],timed:false},testT0=0,testTick=null,testGraded=false;
@@ -498,7 +493,7 @@ function renderChat(){
 function quickAsk(t){document.getElementById('chat-in').value=t;sendChat();}
 async function sendChat(){
   const inp=document.getElementById('chat-in'),txt=inp.value.trim();if(!txt)return;
-  CHAT.push({r:'user',t:txt});inp.value='';renderChat();
+  CHAT.push({r:'user',t:esc(txt)});inp.value='';renderChat();
   if(groqKey()){ // IA real via Groq
     CHAT.push({r:'ai',t:'…'});renderChat();
     try{
@@ -1472,3 +1467,7 @@ addEventListener('DOMContentLoaded',async()=>{
   applyNavOrder();renderNavToggles();applyNavVisibility();
   go('tutor'); // página inicial = Tutor IA
 });
+// PWA — registra service worker (offline + instalável)
+if('serviceWorker' in navigator){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
