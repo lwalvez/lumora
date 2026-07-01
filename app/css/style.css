@@ -159,8 +159,8 @@ button{font-family:var(--font)}
 /* theme toggle */
 .theme-btn{display:inline-grid;place-items:center;cursor:pointer;width:40px;height:40px;border-radius:50%;
   background:var(--glass-bg-strong);backdrop-filter:blur(14px);border:1px solid var(--glass-brd);color:var(--text);
-  transition:transform .4s var(--spring)}
-.theme-btn:hover{transform:rotate(40deg) scale(1.08)}
+  transition:transform .25s var(--ease),background .25s var(--ease),border-color .25s var(--ease)}
+.theme-btn:hover{transform:translateY(-2px) scale(1.05)}
 .theme-btn svg{width:18px;height:18px}
 
 /* icon helper */
