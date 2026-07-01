@@ -796,6 +796,7 @@ function startEmoji(){
 
 // ===== Drive =====
 let driveFiles=[],driveFolders=[],driveCwd=null; // cwd null = raiz
+let driveUrls=[]; // objectURLs de miniaturas (revogados a cada render)
 const DRIVE_KEY='lumora_drive',DRIVE_FOLDERS_KEY='lumora_drive_folders';
 function fIcon(t){t=t||'';if(t.includes('pdf'))return'📕';if(t.startsWith('image'))return'🖼️';
   if(t.startsWith('audio'))return'🎵';if(t.startsWith('video'))return'🎬';
@@ -803,6 +804,15 @@ function fIcon(t){t=t||'';if(t.includes('pdf'))return'📕';if(t.startsWith('ima
   if(t.includes('sheet')||t.includes('excel')||t.includes('csv'))return'📗';return'📄';}
 function fSize(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(0)+' KB';return(b/1048576).toFixed(1)+' MB';}
 function uid(p){return p+Date.now()+Math.random().toString(36).slice(2,6);}
+
+// --- IndexedDB (guarda os bytes reais dos arquivos) ---
+function dvDB(){return new Promise((res,rej)=>{const r=indexedDB.open('lumora_drive_db',1);
+  r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('blobs'))r.result.createObjectStore('blobs');};
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function dvPut(id,blob){const db=await dvDB();return new Promise((res,rej)=>{const t=db.transaction('blobs','readwrite');t.objectStore('blobs').put(blob,id);t.oncomplete=()=>res();t.onerror=()=>rej(t.error);});}
+async function dvGet(id){const db=await dvDB();return new Promise((res,rej)=>{const t=db.transaction('blobs','readonly');const q=t.objectStore('blobs').get(id);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}
+async function dvDel(id){const db=await dvDB();return new Promise(res=>{const t=db.transaction('blobs','readwrite');t.objectStore('blobs').delete(id);t.oncomplete=()=>res();t.onerror=()=>res();});}
+
 function loadDrive(){
   try{driveFiles=JSON.parse(localStorage.getItem(DRIVE_KEY))||[]}catch(e){driveFiles=[]}
   try{driveFolders=JSON.parse(localStorage.getItem(DRIVE_FOLDERS_KEY))||[]}catch(e){driveFolders=[]}
@@ -812,12 +822,12 @@ function saveDrive(){
   localStorage.setItem(DRIVE_FOLDERS_KEY,JSON.stringify(driveFolders));
 }
 function folderPath(id){const p=[];let c=id;while(c){const f=driveFolders.find(x=>x.id===c);if(!f)break;p.unshift(f);c=f.parent;}return p;}
-function descendants(id){ // ids de todas as subpastas (inclui id)
-  const out=[id];driveFolders.filter(f=>f.parent===id).forEach(f=>out.push(...descendants(f.id)));return out;}
-function esc(s){return String(s).replace(/</g,'&lt;');}
+function descendants(id){const out=[id];driveFolders.filter(f=>f.parent===id).forEach(f=>out.push(...descendants(f.id)));return out;}
+function esc(s){return String(s).replace(/</g,'&lt;').replace(/'/g,'&#39;');}
+
 function renderDrive(){
   const g=document.getElementById('drive-grid'),cr=document.getElementById('drive-crumbs');if(!g)return;
-  // breadcrumb
+  driveUrls.forEach(u=>URL.revokeObjectURL(u));driveUrls=[];
   if(cr){
     let h=`<span class="cr ${driveCwd?'':'cur'}" onclick="goDrive(null)"><span class="nav-emo emo">🏠</span> Drive</span>`;
     folderPath(driveCwd).forEach((f,i,a)=>{h+=`<span class="sep">/</span><span class="cr ${i===a.length-1?'cur':''}" onclick="goDrive('${f.id}')">${esc(f.name)}</span>`;});
@@ -826,38 +836,123 @@ function renderDrive(){
   const folders=driveFolders.filter(f=>(f.parent||null)===driveCwd);
   const files=driveFiles.filter(f=>(f.folder||null)===driveCwd);
   if(!folders.length&&!files.length){g.innerHTML='<p class="muted" style="grid-column:1/-1;text-align:center;padding:20px">Pasta vazia.</p>';if(window.twemoji)twemoji.parse(document.getElementById('view-drive'));return;}
-  g.innerHTML=folders.map(f=>`<div class="panel glass drive-card folder" onclick="goDrive('${f.id}')">
-    <button class="fdel" onclick="event.stopPropagation();delFolder('${f.id}')" aria-label="Remover">✕</button>
-    <div class="fico">📁</div>
+  g.innerHTML=folders.map(f=>`<div class="panel glass drive-card folder" data-folder="${f.id}"
+      onclick="goDrive('${f.id}')"
+      ondragover="dvFolderOver(event,this)" ondragleave="this.classList.remove('dragover')" ondrop="dvDropOnFolder(event,'${f.id}',this)">
+    <div class="fico fopen">📁</div>
     <div class="fname">${esc(f.name)}</div>
     <div class="fmeta">pasta</div>
-  </div>`).join('')+files.map(f=>`<div class="panel glass drive-card">
-    <button class="fdel" onclick="delDriveFile('${f.id}')" aria-label="Remover">✕</button>
-    <div class="fico">${fIcon(f.type)}</div>
-    <div class="fname">${esc(f.name)}</div>
-    <div class="fmeta">${fSize(f.size)} · ${f.date}</div>
-  </div>`).join('');
+    <div class="dv-actions" onclick="event.stopPropagation()">
+      <button title="Renomear" onclick="renameFolder('${f.id}')">✏️</button>
+      <button title="Excluir" onclick="delFolder('${f.id}')">🗑️</button>
+    </div>
+  </div>`).join('')+files.map(f=>{
+    const img=(f.type||'').startsWith('image');
+    return `<div class="panel glass drive-card" draggable="true" data-file="${f.id}" ondragstart="dvDragFile(event,'${f.id}')">
+    <div class="fopen" onclick="openDriveFile('${f.id}')">
+      ${img?`<img class="fthumb" data-thumb="${f.id}" alt="">`:`<div class="fico">${fIcon(f.type)}</div>`}
+      <div class="fname">${esc(f.name)}</div>
+      <div class="fmeta">${fSize(f.size)} · ${f.date}</div>
+    </div>
+    <div class="dv-actions">
+      <button title="Baixar" onclick="downloadDriveFile('${f.id}')">⬇️</button>
+      <button title="Renomear" onclick="renameDriveFile('${f.id}')">✏️</button>
+      <button title="Mover" onclick="moveDriveFile('${f.id}')">📂</button>
+      <button title="Excluir" onclick="delDriveFile('${f.id}')">🗑️</button>
+    </div>
+  </div>`;}).join('');
   if(window.twemoji)twemoji.parse(document.getElementById('view-drive'));
+  // miniaturas de imagem (assíncrono)
+  files.filter(f=>(f.type||'').startsWith('image')).forEach(async f=>{
+    const el=g.querySelector(`img[data-thumb="${f.id}"]`);if(!el)return;
+    const b=await dvGet(f.id);if(!b)return;const u=URL.createObjectURL(b);driveUrls.push(u);el.src=u;
+  });
 }
 function goDrive(id){driveCwd=id;renderDrive();}
 function mkFolder(){
   const name=(prompt('Nome da pasta:')||'').trim();if(!name)return;
   driveFolders.push({id:uid('d'),name,parent:driveCwd});saveDrive();renderDrive();
 }
-function delFolder(id){
+function renameFolder(id){
+  const f=driveFolders.find(x=>x.id===id);if(!f)return;
+  const n=(prompt('Renomear pasta:',f.name)||'').trim();if(!n)return;
+  f.name=n;saveDrive();renderDrive();
+}
+async function delFolder(id){
   const f=driveFolders.find(x=>x.id===id);if(!f)return;
   if(!confirm(`Excluir a pasta "${f.name}" e todo o conteúdo dela?`))return;
   const kill=descendants(id);
+  const killedFiles=driveFiles.filter(x=>kill.includes(x.folder||null));
+  await Promise.all(killedFiles.map(x=>dvDel(x.id)));
   driveFolders=driveFolders.filter(x=>!kill.includes(x.id));
   driveFiles=driveFiles.filter(x=>!kill.includes(x.folder||null));
   saveDrive();renderDrive();
 }
-function addDriveFiles(list){
-  [...list].forEach(f=>driveFiles.unshift({id:uid('f'),folder:driveCwd,
-    name:f.name,size:f.size,type:f.type,date:new Date().toLocaleDateString('pt-BR')}));
+async function addDriveFiles(list){
+  for(const f of [...list]){
+    const id=uid('f');
+    try{await dvPut(id,f);}catch(e){alert('Falha ao salvar '+f.name+' (arquivo muito grande?).');continue;}
+    driveFiles.unshift({id,folder:driveCwd,name:f.name,size:f.size,type:f.type,date:new Date().toLocaleDateString('pt-BR')});
+  }
   saveDrive();renderDrive();
 }
-function delDriveFile(id){driveFiles=driveFiles.filter(f=>f.id!==id);saveDrive();renderDrive();}
+async function delDriveFile(id){await dvDel(id);driveFiles=driveFiles.filter(f=>f.id!==id);saveDrive();renderDrive();}
+function renameDriveFile(id){
+  const f=driveFiles.find(x=>x.id===id);if(!f)return;
+  const n=(prompt('Renomear arquivo:',f.name)||'').trim();if(!n)return;
+  f.name=n;saveDrive();renderDrive();
+}
+async function downloadDriveFile(id){
+  const f=driveFiles.find(x=>x.id===id);if(!f)return;
+  const b=await dvGet(id);if(!b){alert('Arquivo não encontrado.');return;}
+  const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=f.name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),4000);
+}
+async function openDriveFile(id){
+  const f=driveFiles.find(x=>x.id===id);if(!f)return;
+  const t=f.type||'';
+  if(!t.startsWith('image')&&!t.includes('pdf')){return downloadDriveFile(id);} // sem preview → baixa
+  const b=await dvGet(id);if(!b){alert('Arquivo não encontrado.');return;}
+  const u=URL.createObjectURL(b);
+  const body=t.startsWith('image')?`<img src="${u}" alt="${esc(f.name)}">`:`<iframe src="${u}"></iframe>`;
+  openDvModal(`<h3>${esc(f.name)}</h3>${body}
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn" onclick="downloadDriveFile('${id}')">Baixar</button>
+      <button class="btn btn-grad" onclick="closeDvModal()">Fechar</button></div>`,u);
+}
+function moveDriveFile(id){
+  const f=driveFiles.find(x=>x.id===id);if(!f)return;
+  const cur=f.folder||null;
+  let rows=`<div class="mv ${cur===null?'':''}" ${cur===null?'data-disabled':''} onclick="doMove('${id}',null)"><span class="nav-emo emo">🏠</span> Drive (raiz)</div>`;
+  driveFolders.forEach(fd=>{
+    const path=folderPath(fd.id).map(x=>x.name).join(' / ');
+    rows+=`<div class="mv" ${fd.id===cur?'data-disabled':''} onclick="doMove('${id}','${fd.id}')"><span class="nav-emo emo">📁</span> ${esc(path)}</div>`;
+  });
+  openDvModal(`<h3>Mover "${esc(f.name)}" para…</h3><div class="dv-mv-list">${rows}</div>
+    <div style="text-align:right"><button class="btn" onclick="closeDvModal()">Cancelar</button></div>`);
+}
+function doMove(id,dest){
+  const f=driveFiles.find(x=>x.id===id);if(f){f.folder=dest;saveDrive();}
+  closeDvModal();renderDrive();
+}
+// drag & drop de arquivo para dentro de pasta
+function dvDragFile(e,id){e.dataTransfer.setData('text/dv-file',id);e.dataTransfer.effectAllowed='move';}
+function dvFolderOver(e,el){if([...e.dataTransfer.types].includes('text/dv-file')){e.preventDefault();el.classList.add('dragover');}}
+function dvDropOnFolder(e,folderId,el){
+  e.preventDefault();e.stopPropagation();el.classList.remove('dragover');
+  const id=e.dataTransfer.getData('text/dv-file');if(id)doMove(id,folderId);
+}
+// modal
+function openDvModal(html,revokeUrl){
+  const m=document.getElementById('dv-modal'),box=document.getElementById('dv-modal-box');
+  box.innerHTML=html;box._url=revokeUrl||null;m.hidden=false;
+  if(window.twemoji)twemoji.parse(box);
+}
+function closeDvModal(){
+  const m=document.getElementById('dv-modal'),box=document.getElementById('dv-modal-box');
+  if(box._url){URL.revokeObjectURL(box._url);box._url=null;}
+  m.hidden=true;box.innerHTML='';
+}
 function initDrive(){
   loadDrive();driveCwd=null;renderDrive();
   const drop=document.getElementById('drive-drop'),inp=document.getElementById('drive-file');
@@ -866,7 +961,8 @@ function initDrive(){
   inp.onchange=e=>{if(e.target.files.length)addDriveFiles(e.target.files);inp.value='';};
   ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
   ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
-  drop.addEventListener('drop',e=>{if(e.dataTransfer.files.length)addDriveFiles(e.dataTransfer.files);});
+  drop.addEventListener('drop',e=>{if(e.dataTransfer.files&&e.dataTransfer.files.length)addDriveFiles(e.dataTransfer.files);});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){const m=document.getElementById('dv-modal');if(m&&!m.hidden)closeDvModal();}});
 }
 
 // init
