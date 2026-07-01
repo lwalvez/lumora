@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumora — App</title>
-<link rel="stylesheet" href="css/style.css?v=35">
-<script src="js/icons.js?v=35"></script>
+<link rel="stylesheet" href="css/style.css?v=36">
+<script src="js/icons.js?v=36"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js?v=35"></script>
+<script src="js/supabase.js?v=36"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
 <style>
   body{display:flex;min-height:100vh}
@@ -296,9 +296,10 @@
   .sw input:checked+.track{background:var(--grad);border-color:transparent}
   .sw input:checked+.track::before{transform:translateX(18px);background:#fff}
   /* Simulados */
-  #view-sim input,#view-sim select{width:100%;padding:12px 14px;border-radius:var(--r-md);
+  #view-sim input:not([type=radio]),#view-sim select{width:100%;padding:12px 14px;border-radius:var(--r-md);
     border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:14px;font-family:inherit}
-  #view-sim input:focus,#view-sim select:focus{outline:none;border-color:var(--primary)}
+  #view-sim input:not([type=radio]):focus,#view-sim select:focus{outline:none;border-color:var(--primary)}
+  #view-sim .sim-opt input[type=radio]{width:auto;flex-shrink:0;margin:0;accent-color:var(--primary)}
   .sim-opts{display:flex;gap:12px;margin-top:4px}
   .sim-opts>div{flex:1}
   .sim-q{padding:20px 22px;border-radius:var(--r-lg);margin-top:16px}
@@ -682,6 +683,6 @@
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
 </nav>
 
-<script src="js/app.js?v=35"></script>
+<script src="js/app.js?v=36"></script>
 </body>
 </html>
