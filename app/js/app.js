@@ -1198,4 +1198,5 @@ addEventListener('DOMContentLoaded',async()=>{
   document.querySelectorAll('.navlink').forEach(l=>l.onclick=()=>go(l.dataset.view));
   startEmoji();
   applyNavOrder();renderNavToggles();applyNavVisibility();
+  go('tutor'); // página inicial = Tutor IA
 });
