@@ -1031,6 +1031,9 @@ async function genSim(){
     simQuiz=parseQuiz(raw);
     if(!simQuiz.length)throw new Error('não consegui interpretar as questões');
     simSetStatus('✓ '+simQuiz.length+' questões geradas.','ok');
+    simCurId=uid('sim');
+    simHist.unshift({id:simCurId,topic,diff,n:simQuiz.length,date:Date.now(),quiz:simQuiz,score:null});
+    simHist=simHist.slice(0,50);saveSimHist();renderSimHist();
     renderSimQuiz();
   }catch(e){simSetStatus('✗ Erro: '+e.message,'err');}
   finally{btn.disabled=false;}
@@ -1099,17 +1102,53 @@ function simFinish(){
     </div>`;
   const box=document.getElementById('sim-body');box.prepend(card);
   const act=document.getElementById('sim-actions');if(act)act.remove();
+  if(simCurId){const h=simHist.find(x=>x.id===simCurId);if(h){h.score=score;saveSimHist();renderSimHist();}}
   if(window.twemoji)twemoji.parse(card);
   card.scrollIntoView({behavior:'smooth',block:'center'});
 }
 function simRetryWrong(){
   const w=simQuiz.filter((q,i)=>simState[i]!==null&&simState[i]!==q.answer);
-  if(!w.length)return;simQuiz=w;renderSimQuiz();
+  if(!w.length)return;simCurId=null;simQuiz=w;renderSimQuiz();
 }
 function exportSimToDrive(){
   const cards=simQuiz.map(q=>({q:q.q,a:q.options[q.answer]+(q.explanation?` — ${q.explanation}`:'')}));
   const results=simQuiz.map((q,i)=>simState[i]===null?undefined:simState[i]===q.answer);
   exportSessionToDrive('Simulado IA',cards,results);
+}
+
+// ----- Histórico de simulados -----
+const SIM_HIST_KEY='lumora_sim_history';
+let simHist=[],simCurId=null;
+function loadSimHist(){try{simHist=JSON.parse(localStorage.getItem(SIM_HIST_KEY))||[]}catch(e){simHist=[]}}
+function saveSimHist(){localStorage.setItem(SIM_HIST_KEY,JSON.stringify(simHist));if(window.cloudSync)cloudSync();}
+function renderSimHist(){
+  const el=document.getElementById('sim-hist');if(!el)return;
+  if(!simHist.length){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='block';
+  el.innerHTML=`<h3>🕘 Histórico de simulados</h3>`+simHist.map(h=>{
+    const done=h.score!=null;
+    const pill=done?`<span class="pill ${h.score/h.n>=0.7?'ok':(h.score/h.n>=0.5?'warn':'due')}">${h.score}/${h.n}</span>`:`<span class="pill due">não feito</span>`;
+    return `<div class="row">
+      <span style="flex:1;min-width:0;cursor:pointer" onclick="openSimHist('${h.id}')">
+        <b>${esc(h.topic)}</b> · ${h.n}q · ${esc(h.diff)}<br>
+        <span class="muted" style="font-size:12px">${new Date(h.date).toLocaleString('pt-BR')}</span>
+      </span>
+      ${pill}
+      <span style="display:flex;gap:6px">
+        <button class="btn btn-glass" onclick="openSimHist('${h.id}')">Refazer</button>
+        <button class="btn btn-ghost" title="Excluir" onclick="delSimHist('${h.id}')">🗑️</button>
+      </span>
+    </div>`;}).join('');
+  if(window.twemoji)twemoji.parse(el);
+}
+function openSimHist(id){
+  const h=simHist.find(x=>x.id===id);if(!h)return;
+  simCurId=id;simQuiz=h.quiz.map(q=>({...q}));renderSimQuiz();
+}
+function delSimHist(id){
+  if(!confirm('Excluir este simulado do histórico?'))return;
+  simHist=simHist.filter(x=>x.id!==id);if(simCurId===id)simCurId=null;
+  saveSimHist();renderSimHist();
 }
 
 // ===== Sidebar · seções visíveis =====
@@ -1419,6 +1458,7 @@ addEventListener('DOMContentLoaded',async()=>{
   if(window.cloudInit){ const ok=await cloudInit(); if(!ok)return; }
   const em=document.getElementById('acct-email'); if(em&&window.userEmail)em.textContent=userEmail()||'conta';
   loadNotes();loadFDecks();renderDecks();renderImport();renderChat();initDrive();loadGroqSettings();
+  loadSimHist();renderSimHist();
   document.querySelectorAll('.navlink').forEach(l=>l.onclick=()=>go(l.dataset.view));
   startEmoji();
   applyNavOrder();renderNavToggles();applyNavVisibility();
