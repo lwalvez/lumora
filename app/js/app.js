@@ -909,9 +909,31 @@ function submitSim(){
 }
 
 // ===== Sidebar · seções visíveis =====
-const NAV_HIDDEN_KEY='lumora_hidden_nav';
-const NAV_LOCKED=['today','settings']; // sempre visíveis
+const NAV_HIDDEN_KEY='lumora_hidden_nav',NAV_ORDER_KEY='lumora_nav_order';
+const NAV_LOCKED=['today','settings']; // sempre visíveis (não somem)
 function navHidden(){try{return JSON.parse(localStorage.getItem(NAV_HIDDEN_KEY))||[]}catch(e){return[]}}
+// --- ordem ---
+function navAllViews(){return [...document.querySelectorAll('aside .navlink[data-view]')].map(l=>l.dataset.view);}
+function orderedViews(){
+  const present=navAllViews();
+  let saved=null;try{saved=JSON.parse(localStorage.getItem(NAV_ORDER_KEY))}catch(e){}
+  if(!Array.isArray(saved))return present;
+  const out=saved.filter(v=>present.includes(v));
+  present.forEach(v=>{if(!out.includes(v))out.push(v);}); // itens novos vão pro fim
+  return out;
+}
+function applyNavOrder(){
+  const aside=document.querySelector('aside'),foot=aside&&aside.querySelector('.side-foot');if(!aside)return;
+  const map={};aside.querySelectorAll('.navlink[data-view]').forEach(l=>map[l.dataset.view]=l);
+  orderedViews().forEach(v=>{if(map[v])aside.insertBefore(map[v],foot);});
+}
+function moveNav(view,dir){
+  const ord=orderedViews(),i=ord.indexOf(view),j=i+dir;
+  if(i<0||j<0||j>=ord.length)return;
+  [ord[i],ord[j]]=[ord[j],ord[i]];
+  localStorage.setItem(NAV_ORDER_KEY,JSON.stringify(ord));
+  applyNavOrder();renderNavToggles();
+}
 function applyNavVisibility(){
   const hid=navHidden();
   document.querySelectorAll('.navlink[data-view]').forEach(l=>{
@@ -930,13 +952,23 @@ function toggleNavView(view,on){
 function renderNavToggles(){
   const box=document.getElementById('nav-toggles');if(!box)return;
   const hid=navHidden();
-  const links=[...document.querySelectorAll('aside .navlink[data-view]')].filter(l=>!NAV_LOCKED.includes(l.dataset.view));
-  box.innerHTML=links.map(l=>{
-    const v=l.dataset.view,on=!hid.includes(v);
-    return `<div class="nt"><span class="lbl">${l.innerHTML}</span>
-      <label class="sw"><input type="checkbox" ${on?'checked':''} onchange="toggleNavView('${v}',this.checked)"><span class="track"></span></label>
+  const map={};document.querySelectorAll('aside .navlink[data-view]').forEach(l=>map[l.dataset.view]=l);
+  const ord=orderedViews();
+  box.innerHTML=ord.map((v,idx)=>{
+    const l=map[v];if(!l)return'';
+    const on=!hid.includes(v),locked=NAV_LOCKED.includes(v);
+    return `<div class="nt">
+      <div class="nt-move">
+        <button title="Subir" onclick="moveNav('${v}',-1)" ${idx===0?'disabled':''}>▲</button>
+        <button title="Descer" onclick="moveNav('${v}',1)" ${idx===ord.length-1?'disabled':''}>▼</button>
+      </div>
+      <span class="lbl">${l.innerHTML}</span>
+      <label class="sw" ${locked?'title="Sempre visível"':''}>
+        <input type="checkbox" ${on?'checked':''} ${locked?'disabled':''} onchange="toggleNavView('${v}',this.checked)">
+        <span class="track"></span></label>
     </div>`;
   }).join('');
+  if(window.twemoji)twemoji.parse(box);
 }
 
 // ===== Drive =====
@@ -1119,5 +1151,5 @@ addEventListener('DOMContentLoaded',async()=>{
   loadNotes();loadFDecks();renderDecks();renderImport();renderChat();initDrive();loadGroqSettings();
   document.querySelectorAll('.navlink').forEach(l=>l.onclick=()=>go(l.dataset.view));
   startEmoji();
-  renderNavToggles();applyNavVisibility();
+  applyNavOrder();renderNavToggles();applyNavVisibility();
 });
