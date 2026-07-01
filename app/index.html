@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumora — App</title>
-<link rel="stylesheet" href="css/style.css?v=30">
-<script src="js/icons.js?v=30"></script>
+<link rel="stylesheet" href="css/style.css?v=31">
+<script src="js/icons.js?v=31"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js?v=30"></script>
+<script src="js/supabase.js?v=31"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
 <style>
   body{display:flex;min-height:100vh}
@@ -276,6 +276,19 @@
   .set-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
   .set-status{font-size:13px;margin-top:12px;min-height:18px}
   .set-status.ok{color:var(--success)}.set-status.err{color:var(--danger,#ff5a5a)}
+  .nav-toggles{display:flex;flex-direction:column}
+  .nav-toggles .nt{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:12px 2px;border-bottom:1px solid var(--border)}
+  .nav-toggles .nt:last-child{border:none}
+  .nav-toggles .nt .lbl{display:flex;align-items:center;gap:10px;font-size:14px}
+  .sw{position:relative;width:44px;height:26px;flex-shrink:0}
+  .sw input{opacity:0;width:0;height:0;position:absolute}
+  .sw .track{position:absolute;inset:0;background:var(--surface-2);border:1px solid var(--border);
+    border-radius:999px;cursor:pointer;transition:.25s}
+  .sw .track::before{content:"";position:absolute;left:3px;top:2px;width:20px;height:20px;
+    border-radius:50%;background:var(--muted);transition:.25s}
+  .sw input:checked+.track{background:var(--grad);border-color:transparent}
+  .sw input:checked+.track::before{transform:translateX(18px);background:#fff}
   .imp{padding:26px 18px;border-radius:var(--r-lg);text-align:center;cursor:pointer;
     transition:transform .4s var(--spring),box-shadow .35s}
   .imp:hover{transform:translateY(-4px);box-shadow:var(--glow)}
@@ -590,6 +603,12 @@
       <div id="groq-status" class="set-status muted"></div>
       <p class="muted" style="font-size:12px;margin-top:14px">Pegue uma chave grátis em <b>console.groq.com/keys</b>.</p>
     </div>
+
+    <div class="panel glass" style="max-width:640px;margin-top:16px">
+      <h3><svg><use href="#ic-target"/></svg> Sidebar · Seções visíveis</h3>
+      <p class="muted" style="font-size:13px;margin-bottom:8px">Desative as seções que não quer ver no menu lateral.</p>
+      <div id="nav-toggles" class="nav-toggles"></div>
+    </div>
   </section>
 </main>
 
@@ -601,6 +620,6 @@
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
 </nav>
 
-<script src="js/app.js?v=30"></script>
+<script src="js/app.js?v=31"></script>
 </body>
 </html>

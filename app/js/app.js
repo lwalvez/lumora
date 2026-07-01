@@ -845,6 +845,37 @@ async function testGroq(){
 }
 function toggleGroqKey(){const k=document.getElementById('groq-key');if(k)k.type=k.type==='password'?'text':'password';}
 
+// ===== Sidebar · seções visíveis =====
+const NAV_HIDDEN_KEY='lumora_hidden_nav';
+const NAV_LOCKED=['today','settings']; // sempre visíveis
+function navHidden(){try{return JSON.parse(localStorage.getItem(NAV_HIDDEN_KEY))||[]}catch(e){return[]}}
+function applyNavVisibility(){
+  const hid=navHidden();
+  document.querySelectorAll('.navlink[data-view]').forEach(l=>{
+    l.style.display=(!NAV_LOCKED.includes(l.dataset.view)&&hid.includes(l.dataset.view))?'none':'';
+  });
+  // se a view ativa foi escondida, volta pra Hoje
+  const active=document.querySelector('.view.active');
+  if(active){const v=active.id.replace('view-','');if(hid.includes(v)&&!NAV_LOCKED.includes(v))go('today');}
+}
+function toggleNavView(view,on){
+  let hid=navHidden();
+  if(on)hid=hid.filter(v=>v!==view); else if(!hid.includes(view))hid.push(view);
+  localStorage.setItem(NAV_HIDDEN_KEY,JSON.stringify(hid));
+  applyNavVisibility();
+}
+function renderNavToggles(){
+  const box=document.getElementById('nav-toggles');if(!box)return;
+  const hid=navHidden();
+  const links=[...document.querySelectorAll('aside .navlink[data-view]')].filter(l=>!NAV_LOCKED.includes(l.dataset.view));
+  box.innerHTML=links.map(l=>{
+    const v=l.dataset.view,on=!hid.includes(v);
+    return `<div class="nt"><span class="lbl">${l.innerHTML}</span>
+      <label class="sw"><input type="checkbox" ${on?'checked':''} onchange="toggleNavView('${v}',this.checked)"><span class="track"></span></label>
+    </div>`;
+  }).join('');
+}
+
 // ===== Drive =====
 let driveFiles=[],driveFolders=[],driveCwd=null; // cwd null = raiz
 let driveUrls=[]; // objectURLs de miniaturas (revogados a cada render)
@@ -1025,4 +1056,5 @@ addEventListener('DOMContentLoaded',async()=>{
   loadNotes();loadFDecks();renderDecks();renderImport();renderChat();initDrive();loadGroqSettings();
   document.querySelectorAll('.navlink').forEach(l=>l.onclick=()=>go(l.dataset.view));
   startEmoji();
+  renderNavToggles();applyNavVisibility();
 });
