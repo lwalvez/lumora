@@ -1098,9 +1098,13 @@ function renderDrive(){
   });
 }
 function goDrive(id){driveCwd=id;renderDrive();}
+const DRIVE_SUBFOLDERS=['Flashcards','Notas','Simulados'];
 function mkFolder(){
   const name=(prompt('Nome da pasta:')||'').trim();if(!name)return;
-  driveFolders.push({id:uid('d'),name,parent:driveCwd});saveDrive();renderDrive();
+  const id=uid('d');
+  driveFolders.push({id,name,parent:driveCwd});
+  DRIVE_SUBFOLDERS.forEach(sn=>driveFolders.push({id:uid('d'),name:sn,parent:id}));
+  saveDrive();renderDrive();
 }
 function renameFolder(id){
   const f=driveFolders.find(x=>x.id===id);if(!f)return;
