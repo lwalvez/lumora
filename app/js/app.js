@@ -14,7 +14,7 @@ function toggleTheme(){
 document.documentElement.setAttribute('data-theme',localStorage.getItem('lumora-theme')||'dark');
 
 // ---- navigation ----
-const TITLES={today:'Hoje',library:'Biblioteca',flashcards:'Flashcards',notes:'Notas',study:'Estudar',import:'Importar',progress:'Progresso',tutor:'Tutor IA',arena:'Arena'};
+const TITLES={today:'Hoje',library:'Biblioteca',flashcards:'Flashcards',notes:'Notas',study:'Estudar',import:'Importar',drive:'Drive',progress:'Progresso',tutor:'Tutor IA',arena:'Arena'};
 function go(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+view).classList.add('active');
@@ -794,13 +794,51 @@ function startEmoji(){
   _emojiMO.observe(document.body,{childList:true,subtree:true});
 }
 
+// ===== Drive =====
+let driveFiles=[];
+const DRIVE_KEY='lumora_drive';
+function fIcon(t){t=t||'';if(t.includes('pdf'))return'📕';if(t.startsWith('image'))return'🖼️';
+  if(t.startsWith('audio'))return'🎵';if(t.startsWith('video'))return'🎬';
+  if(t.includes('word')||t.includes('document'))return'📘';
+  if(t.includes('sheet')||t.includes('excel')||t.includes('csv'))return'📗';return'📄';}
+function fSize(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(0)+' KB';return(b/1048576).toFixed(1)+' MB';}
+function loadDrive(){try{driveFiles=JSON.parse(localStorage.getItem(DRIVE_KEY))||[]}catch(e){driveFiles=[]}}
+function saveDrive(){localStorage.setItem(DRIVE_KEY,JSON.stringify(driveFiles))}
+function renderDrive(){
+  const g=document.getElementById('drive-grid');if(!g)return;
+  if(!driveFiles.length){g.innerHTML='<p class="muted" style="grid-column:1/-1;text-align:center;padding:20px">Nenhum arquivo ainda.</p>';return;}
+  g.innerHTML=driveFiles.map(f=>`<div class="panel glass drive-card">
+    <button class="fdel" onclick="delDriveFile('${f.id}')" aria-label="Remover">✕</button>
+    <div class="fico">${fIcon(f.type)}</div>
+    <div class="fname">${f.name.replace(/</g,'&lt;')}</div>
+    <div class="fmeta">${fSize(f.size)} · ${f.date}</div>
+  </div>`).join('');
+  if(window.twemoji)twemoji.parse(g);
+}
+function addDriveFiles(list){
+  [...list].forEach(f=>driveFiles.unshift({id:'f'+Date.now()+Math.random().toString(36).slice(2,6),
+    name:f.name,size:f.size,type:f.type,date:new Date().toLocaleDateString('pt-BR')}));
+  saveDrive();renderDrive();
+}
+function delDriveFile(id){driveFiles=driveFiles.filter(f=>f.id!==id);saveDrive();renderDrive();}
+function initDrive(){
+  loadDrive();renderDrive();
+  const drop=document.getElementById('drive-drop'),inp=document.getElementById('drive-file');
+  if(!drop||!inp)return;
+  drop.onclick=()=>inp.click();
+  inp.onchange=e=>{if(e.target.files.length)addDriveFiles(e.target.files);inp.value='';};
+  ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+  ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+  drop.addEventListener('drop',e=>{if(e.dataTransfer.files.length)addDriveFiles(e.dataTransfer.files);});
+}
+
 // init
 addEventListener('DOMContentLoaded',async()=>{
   setThemeIcon();
   // autentica + carrega dados da nuvem (redireciona pro login se não houver sessão)
   if(window.cloudInit){ const ok=await cloudInit(); if(!ok)return; }
   const em=document.getElementById('acct-email'); if(em&&window.userEmail)em.textContent=userEmail()||'conta';
-  loadNotes();loadFDecks();renderDecks();renderImport();renderChat();
+  loadNotes();loadFDecks();renderDecks();renderImport();renderChat();initDrive();
   document.querySelectorAll('.navlink').forEach(l=>l.onclick=()=>go(l.dataset.view));
   startEmoji();
 });

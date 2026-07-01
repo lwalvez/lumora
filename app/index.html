@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumora — App</title>
-<link rel="stylesheet" href="css/style.css?v=26">
-<script src="js/icons.js?v=26"></script>
+<link rel="stylesheet" href="css/style.css?v=27">
+<script src="js/icons.js?v=27"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js?v=26"></script>
+<script src="js/supabase.js?v=27"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
 <style>
   body{display:flex;min-height:100vh}
@@ -218,6 +218,20 @@
   /* import */
   .imp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
   @media(max-width:780px){.imp-grid{grid-template-columns:1fr 1fr}}
+  /* Drive */
+  .drive-drop{text-align:center;cursor:pointer;border:2px dashed var(--border);
+    transition:border-color .3s,background .3s}
+  .drive-drop:hover,.drive-drop.drag{border-color:var(--primary);background:var(--surface-2)}
+  .drive-drop-inner{padding:20px 0}
+  .drive-card{padding:18px 14px;border-radius:var(--r-lg);text-align:center;position:relative;
+    transition:transform .4s var(--spring),box-shadow .35s}
+  .drive-card:hover{transform:translateY(-4px);box-shadow:var(--glow)}
+  .drive-card .fico{font-size:34px;line-height:1;margin-bottom:9px}
+  .drive-card .fname{font-size:13px;font-weight:600;word-break:break-word}
+  .drive-card .fmeta{font-size:11px;color:var(--muted);margin-top:3px}
+  .drive-card .fdel{position:absolute;top:8px;right:8px;border:0;background:transparent;
+    cursor:pointer;font-size:14px;opacity:.5;transition:opacity .2s}
+  .drive-card .fdel:hover{opacity:1}
   .imp{padding:26px 18px;border-radius:var(--r-lg);text-align:center;cursor:pointer;
     transition:transform .4s var(--spring),box-shadow .35s}
   .imp:hover{transform:translateY(-4px);box-shadow:var(--glow)}
@@ -344,6 +358,7 @@
   <div class="navlink" data-view="flashcards"><span class="nav-emo emo">🃏</span>Flashcards</div>
   <div class="navlink" data-view="notes"><span class="nav-emo emo">🗒️</span>Notas</div>
   <div class="navlink" data-view="import"><span class="nav-emo emo">➕</span>Importar</div>
+  <div class="navlink" data-view="drive"><span class="nav-emo emo">📁</span>Drive</div>
   <div class="navlink" data-view="progress"><span class="nav-emo emo">📊</span>Progresso</div>
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor IA</div>
   <div class="navlink" data-view="arena"><span class="nav-emo emo">🎮</span>Arena</div>
@@ -437,6 +452,19 @@
     <div class="panel glass" id="imp-result" style="margin-top:16px;display:none"></div>
   </section>
 
+  <!-- DRIVE -->
+  <section class="view" id="view-drive">
+    <div class="panel glass drive-drop" id="drive-drop">
+      <input type="file" id="drive-file" multiple hidden>
+      <div class="drive-drop-inner">
+        <span class="nav-emo emo" style="font-size:32px">📁</span>
+        <h3 style="justify-content:center;margin:8px 0 4px">Arraste arquivos ou clique para enviar</h3>
+        <p class="muted" style="font-size:13px">PDF, imagens, áudio e documentos · guardado no seu Drive</p>
+      </div>
+    </div>
+    <div class="grid g4" id="drive-grid" style="margin-top:16px"></div>
+  </section>
+
   <!-- PROGRESS -->
   <section class="view" id="view-progress">
     <div class="grid g4" style="margin-bottom:16px">
@@ -493,6 +521,6 @@
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
 </nav>
 
-<script src="js/app.js?v=26"></script>
+<script src="js/app.js?v=27"></script>
 </body>
 </html>
