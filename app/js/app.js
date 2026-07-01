@@ -403,6 +403,47 @@ async function sendChat(){
   },450);
 }
 
+// ---- Tutor · ações da conversa ----
+function htmlToText(h){const d=document.createElement('div');d.innerHTML=String(h).replace(/<br\s*\/?>/gi,'\n');return (d.textContent||'').trim();}
+function chatPlain(){return CHAT.map(m=>`${m.r==='user'?'Você':'Tutor IA'}: ${htmlToText(m.t)}`).join('\n\n');}
+function chatCopy(){
+  navigator.clipboard.writeText(chatPlain()).then(()=>toast('Conversa copiada ✓')).catch(()=>toast('Falha ao copiar','err'));
+}
+function chatTxt(){
+  const blob=new Blob([chatPlain()],{type:'text/plain;charset=utf-8'});
+  const u=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=u;a.download='lumora-tutor-'+new Date().toISOString().slice(0,10)+'.txt';a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),3000);
+}
+function chatClear(){
+  if(!confirm('Limpar toda a conversa?'))return;
+  CHAT.length=0;
+  CHAT.push({r:'ai',t:'Olá! Sou seu tutor. Pergunte sobre qualquer material que você importou — eu explico e cito a fonte. <span class="emo">📚</span>',cite:'',acts:['Me teste em Biologia','Explique o Ciclo de Krebs']});
+  renderChat();
+}
+function chatPDF(){
+  const rows=CHAT.map(m=>`<div class="m ${m.r}"><b>${m.r==='user'?'Você':'Tutor IA'}</b><p>${esc(htmlToText(m.t)).replace(/\n/g,'<br>')}</p></div>`).join('');
+  const w=window.open('','_blank');if(!w){toast('Permita pop-ups para gerar o PDF','err');return;}
+  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Tutor IA — Conversa</title>
+    <style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;max-width:720px;margin:32px auto;padding:0 20px;color:#1a1a2e}
+    h1{font-size:20px;border-bottom:2px solid #7c5cff;padding-bottom:10px}
+    .meta{color:#888;font-size:12px;margin-bottom:22px}
+    .m{margin:0 0 16px;padding:12px 16px;border-radius:12px;page-break-inside:avoid}
+    .m.user{background:#efeaff;border-left:3px solid #7c5cff}
+    .m.ai{background:#f4f5f8;border-left:3px solid #34e0a1}
+    .m b{display:block;font-size:12px;color:#7c5cff;margin-bottom:4px}
+    .m.ai b{color:#1aa47a}.m p{margin:0;font-size:14px;line-height:1.55;white-space:pre-wrap}</style></head>
+    <body><h1>Lumora · Tutor IA</h1><div class="meta">Conversa exportada em ${new Date().toLocaleString('pt-BR')}</div>${rows}
+    <script>onload=()=>{print();}<\/script></body></html>`);
+  w.document.close();
+}
+function toast(msg,cls){
+  let t=document.getElementById('dv-toast');
+  if(!t){t=document.createElement('div');t.id='dv-toast';document.body.appendChild(t);}
+  t.textContent=msg;t.className=cls==='err'?'err':'';t.classList.add('show');
+  clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
 // ---- import ----
 const SOURCES=[['file','PDF'],['cam','Foto / Scanner'],['play','YouTube'],['link','Link'],['mic','Áudio'],['text','Texto'],['grad','Notion'],['library','Google Drive'],['crystal','OneDrive']];
 function renderImport(){

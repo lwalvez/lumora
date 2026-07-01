@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumora — App</title>
-<link rel="stylesheet" href="css/style.css?v=33">
-<script src="js/icons.js?v=33"></script>
+<link rel="stylesheet" href="css/style.css?v=34">
+<script src="js/icons.js?v=34"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js?v=33"></script>
+<script src="js/supabase.js?v=34"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
 <style>
   body{display:flex;min-height:100vh}
@@ -314,6 +314,15 @@
     background:var(--surface-2);border-left:3px solid var(--primary)}
   .sim-score{text-align:center;padding:26px}
   .sim-score .big{font-size:44px;font-weight:800;letter-spacing:-.02em}
+  /* Tutor · barra de ações */
+  .chat-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .chat-tools .btn{font-size:13px;padding:8px 13px}
+  @media(max-width:560px){.chat-tools .btn{flex:1;justify-content:center}}
+  #dv-toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);z-index:80;
+    background:var(--grad);color:#fff;padding:12px 20px;border-radius:999px;font-size:14px;font-weight:600;
+    box-shadow:0 10px 30px rgba(124,92,255,.5);opacity:0;pointer-events:none;transition:.3s}
+  #dv-toast.err{background:var(--danger,#ff5a5a);box-shadow:0 10px 30px rgba(255,90,90,.5)}
+  #dv-toast.show{opacity:1;transform:translate(-50%,0)}
   .imp{padding:26px 18px;border-radius:var(--r-lg);text-align:center;cursor:pointer;
     transition:transform .4s var(--spring),box-shadow .35s}
   .imp:hover{transform:translateY(-4px);box-shadow:var(--glow)}
@@ -580,6 +589,12 @@
         <input id="chat-in" placeholder="Pergunte algo sobre seu material…" onkeydown="if(event.key==='Enter')sendChat()">
         <button class="btn btn-grad" onclick="sendChat()" aria-label="Enviar"><svg class="ic"><use href="#ic-send"/></svg></button>
       </div>
+      <div class="chat-tools">
+        <button class="btn" onclick="chatPDF()"><span class="nav-emo emo">📄</span> Gerar PDF</button>
+        <button class="btn" onclick="chatCopy()"><span class="nav-emo emo">📋</span> Copiar</button>
+        <button class="btn" onclick="chatTxt()"><span class="nav-emo emo">💾</span> Exportar .txt</button>
+        <button class="btn" onclick="chatClear()"><span class="nav-emo emo">🗑️</span> Limpar</button>
+      </div>
     </div>
   </section>
 
@@ -667,6 +682,6 @@
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
 </nav>
 
-<script src="js/app.js?v=33"></script>
+<script src="js/app.js?v=34"></script>
 </body>
 </html>
