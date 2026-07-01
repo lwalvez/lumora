@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumora — App</title>
-<link rel="stylesheet" href="css/style.css?v=34">
-<script src="js/icons.js?v=34"></script>
+<link rel="stylesheet" href="css/style.css?v=35">
+<script src="js/icons.js?v=35"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js?v=34"></script>
+<script src="js/supabase.js?v=35"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
 <style>
   body{display:flex;min-height:100vh}
@@ -205,9 +205,9 @@
   .msg .cite{margin-top:11px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:9px;display:flex;gap:6px;align-items:center}
   .msg .cite svg{width:14px;height:14px}
   .msg .acts{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
-  .msg .acts button{font-size:12.5px;padding:6px 13px;border-radius:999px;border:1px solid var(--border);
-    background:var(--surface-2);cursor:pointer;color:var(--primary);font-weight:600;transition:.25s var(--ease)}
-  .msg .acts button:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+  .msg .acts button{font-size:12.5px;padding:6px 13px;border-radius:999px;border:1px solid rgba(139,124,255,.45);
+    background:rgba(139,124,255,.16);cursor:pointer;color:var(--primary);font-weight:700;transition:.25s var(--ease)}
+  .msg .acts button:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm);background:rgba(139,124,255,.24)}
   .composer{display:flex;gap:10px;padding-top:14px;border-top:1px solid var(--border)}
   .composer input{flex:1;padding:14px 20px;border-radius:999px;border:1px solid var(--glass-brd);
     background:var(--surface-2);color:var(--text);font-size:15px;font-family:var(--font)}
@@ -682,6 +682,6 @@
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
 </nav>
 
-<script src="js/app.js?v=34"></script>
+<script src="js/app.js?v=35"></script>
 </body>
 </html>
