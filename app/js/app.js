@@ -958,7 +958,7 @@ function submitSim(){
 
 // ===== Sidebar · seções visíveis =====
 const NAV_HIDDEN_KEY='lumora_hidden_nav',NAV_ORDER_KEY='lumora_nav_order';
-const NAV_LOCKED=['today','settings']; // sempre visíveis (não somem)
+const NAV_LOCKED=['settings']; // sempre visível (não some) — garante ao menos 1 view acessível
 function navHidden(){try{return JSON.parse(localStorage.getItem(NAV_HIDDEN_KEY))||[]}catch(e){return[]}}
 // --- ordem ---
 function navAllViews(){return [...document.querySelectorAll('aside .navlink[data-view]')].map(l=>l.dataset.view);}
@@ -987,9 +987,13 @@ function applyNavVisibility(){
   document.querySelectorAll('.navlink[data-view]').forEach(l=>{
     l.style.display=(!NAV_LOCKED.includes(l.dataset.view)&&hid.includes(l.dataset.view))?'none':'';
   });
-  // se a view ativa foi escondida, volta pra Hoje
+  // se a view ativa foi escondida, volta pra primeira view visível
   const active=document.querySelector('.view.active');
-  if(active){const v=active.id.replace('view-','');if(hid.includes(v)&&!NAV_LOCKED.includes(v))go('today');}
+  if(active){const v=active.id.replace('view-','');
+    if(hid.includes(v)&&!NAV_LOCKED.includes(v)){
+      const first=orderedViews().find(x=>!hid.includes(x)||NAV_LOCKED.includes(x));
+      go(first||'settings');
+    }}
 }
 function toggleNavView(view,on){
   let hid=navHidden();
