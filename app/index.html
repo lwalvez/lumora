@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumora — App</title>
-<link rel="stylesheet" href="css/style.css?v=27">
-<script src="js/icons.js?v=27"></script>
+<link rel="stylesheet" href="css/style.css?v=28">
+<script src="js/icons.js?v=28"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js?v=27"></script>
+<script src="js/supabase.js?v=28"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
 <style>
   body{display:flex;min-height:100vh}
@@ -232,6 +232,14 @@
   .drive-card .fdel{position:absolute;top:8px;right:8px;border:0;background:transparent;
     cursor:pointer;font-size:14px;opacity:.5;transition:opacity .2s}
   .drive-card .fdel:hover{opacity:1}
+  .drive-card.folder{cursor:pointer}
+  .drive-card.folder:hover{border-color:var(--primary)}
+  .drive-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;flex-wrap:wrap}
+  .drive-crumbs{display:flex;align-items:center;gap:4px;font-size:14px;flex-wrap:wrap}
+  .drive-crumbs .cr{cursor:pointer;color:var(--text-2);padding:4px 8px;border-radius:var(--r-sm);transition:.2s}
+  .drive-crumbs .cr:hover{background:var(--surface-2);color:var(--text)}
+  .drive-crumbs .cr.cur{color:var(--text);font-weight:700;cursor:default}
+  .drive-crumbs .sep{color:var(--muted)}
   .imp{padding:26px 18px;border-radius:var(--r-lg);text-align:center;cursor:pointer;
     transition:transform .4s var(--spring),box-shadow .35s}
   .imp:hover{transform:translateY(-4px);box-shadow:var(--glow)}
@@ -462,7 +470,11 @@
         <p class="muted" style="font-size:13px">PDF, imagens, áudio e documentos · guardado no seu Drive</p>
       </div>
     </div>
-    <div class="grid g4" id="drive-grid" style="margin-top:16px"></div>
+    <div class="drive-bar">
+      <div class="drive-crumbs" id="drive-crumbs"></div>
+      <button class="btn btn-grad" onclick="mkFolder()"><span class="nav-emo emo">📂</span> Nova pasta</button>
+    </div>
+    <div class="grid g4" id="drive-grid" style="margin-top:14px"></div>
   </section>
 
   <!-- PROGRESS -->
@@ -521,6 +533,6 @@
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
 </nav>
 
-<script src="js/app.js?v=27"></script>
+<script src="js/app.js?v=28"></script>
 </body>
 </html>

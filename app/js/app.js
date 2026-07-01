@@ -795,34 +795,71 @@ function startEmoji(){
 }
 
 // ===== Drive =====
-let driveFiles=[];
-const DRIVE_KEY='lumora_drive';
+let driveFiles=[],driveFolders=[],driveCwd=null; // cwd null = raiz
+const DRIVE_KEY='lumora_drive',DRIVE_FOLDERS_KEY='lumora_drive_folders';
 function fIcon(t){t=t||'';if(t.includes('pdf'))return'📕';if(t.startsWith('image'))return'🖼️';
   if(t.startsWith('audio'))return'🎵';if(t.startsWith('video'))return'🎬';
   if(t.includes('word')||t.includes('document'))return'📘';
   if(t.includes('sheet')||t.includes('excel')||t.includes('csv'))return'📗';return'📄';}
 function fSize(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(0)+' KB';return(b/1048576).toFixed(1)+' MB';}
-function loadDrive(){try{driveFiles=JSON.parse(localStorage.getItem(DRIVE_KEY))||[]}catch(e){driveFiles=[]}}
-function saveDrive(){localStorage.setItem(DRIVE_KEY,JSON.stringify(driveFiles))}
+function uid(p){return p+Date.now()+Math.random().toString(36).slice(2,6);}
+function loadDrive(){
+  try{driveFiles=JSON.parse(localStorage.getItem(DRIVE_KEY))||[]}catch(e){driveFiles=[]}
+  try{driveFolders=JSON.parse(localStorage.getItem(DRIVE_FOLDERS_KEY))||[]}catch(e){driveFolders=[]}
+}
+function saveDrive(){
+  localStorage.setItem(DRIVE_KEY,JSON.stringify(driveFiles));
+  localStorage.setItem(DRIVE_FOLDERS_KEY,JSON.stringify(driveFolders));
+}
+function folderPath(id){const p=[];let c=id;while(c){const f=driveFolders.find(x=>x.id===c);if(!f)break;p.unshift(f);c=f.parent;}return p;}
+function descendants(id){ // ids de todas as subpastas (inclui id)
+  const out=[id];driveFolders.filter(f=>f.parent===id).forEach(f=>out.push(...descendants(f.id)));return out;}
+function esc(s){return String(s).replace(/</g,'&lt;');}
 function renderDrive(){
-  const g=document.getElementById('drive-grid');if(!g)return;
-  if(!driveFiles.length){g.innerHTML='<p class="muted" style="grid-column:1/-1;text-align:center;padding:20px">Nenhum arquivo ainda.</p>';return;}
-  g.innerHTML=driveFiles.map(f=>`<div class="panel glass drive-card">
+  const g=document.getElementById('drive-grid'),cr=document.getElementById('drive-crumbs');if(!g)return;
+  // breadcrumb
+  if(cr){
+    let h=`<span class="cr ${driveCwd?'':'cur'}" onclick="goDrive(null)"><span class="nav-emo emo">🏠</span> Drive</span>`;
+    folderPath(driveCwd).forEach((f,i,a)=>{h+=`<span class="sep">/</span><span class="cr ${i===a.length-1?'cur':''}" onclick="goDrive('${f.id}')">${esc(f.name)}</span>`;});
+    cr.innerHTML=h;
+  }
+  const folders=driveFolders.filter(f=>(f.parent||null)===driveCwd);
+  const files=driveFiles.filter(f=>(f.folder||null)===driveCwd);
+  if(!folders.length&&!files.length){g.innerHTML='<p class="muted" style="grid-column:1/-1;text-align:center;padding:20px">Pasta vazia.</p>';if(window.twemoji)twemoji.parse(document.getElementById('view-drive'));return;}
+  g.innerHTML=folders.map(f=>`<div class="panel glass drive-card folder" onclick="goDrive('${f.id}')">
+    <button class="fdel" onclick="event.stopPropagation();delFolder('${f.id}')" aria-label="Remover">✕</button>
+    <div class="fico">📁</div>
+    <div class="fname">${esc(f.name)}</div>
+    <div class="fmeta">pasta</div>
+  </div>`).join('')+files.map(f=>`<div class="panel glass drive-card">
     <button class="fdel" onclick="delDriveFile('${f.id}')" aria-label="Remover">✕</button>
     <div class="fico">${fIcon(f.type)}</div>
-    <div class="fname">${f.name.replace(/</g,'&lt;')}</div>
+    <div class="fname">${esc(f.name)}</div>
     <div class="fmeta">${fSize(f.size)} · ${f.date}</div>
   </div>`).join('');
-  if(window.twemoji)twemoji.parse(g);
+  if(window.twemoji)twemoji.parse(document.getElementById('view-drive'));
+}
+function goDrive(id){driveCwd=id;renderDrive();}
+function mkFolder(){
+  const name=(prompt('Nome da pasta:')||'').trim();if(!name)return;
+  driveFolders.push({id:uid('d'),name,parent:driveCwd});saveDrive();renderDrive();
+}
+function delFolder(id){
+  const f=driveFolders.find(x=>x.id===id);if(!f)return;
+  if(!confirm(`Excluir a pasta "${f.name}" e todo o conteúdo dela?`))return;
+  const kill=descendants(id);
+  driveFolders=driveFolders.filter(x=>!kill.includes(x.id));
+  driveFiles=driveFiles.filter(x=>!kill.includes(x.folder||null));
+  saveDrive();renderDrive();
 }
 function addDriveFiles(list){
-  [...list].forEach(f=>driveFiles.unshift({id:'f'+Date.now()+Math.random().toString(36).slice(2,6),
+  [...list].forEach(f=>driveFiles.unshift({id:uid('f'),folder:driveCwd,
     name:f.name,size:f.size,type:f.type,date:new Date().toLocaleDateString('pt-BR')}));
   saveDrive();renderDrive();
 }
 function delDriveFile(id){driveFiles=driveFiles.filter(f=>f.id!==id);saveDrive();renderDrive();}
 function initDrive(){
-  loadDrive();renderDrive();
+  loadDrive();driveCwd=null;renderDrive();
   const drop=document.getElementById('drive-drop'),inp=document.getElementById('drive-file');
   if(!drop||!inp)return;
   drop.onclick=()=>inp.click();
