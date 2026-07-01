@@ -14,7 +14,7 @@ function toggleTheme(){
 document.documentElement.setAttribute('data-theme',localStorage.getItem('lumora-theme')||'dark');
 
 // ---- navigation ----
-const TITLES={today:'Hoje',library:'Biblioteca',flashcards:'Flashcards',notes:'Notas',study:'Estudar',import:'Importar',drive:'Drive',progress:'Progresso',tutor:'Tutor IA',arena:'Arena'};
+const TITLES={today:'Hoje',library:'Biblioteca',flashcards:'Flashcards',notes:'Notas',study:'Estudar',import:'Importar',drive:'Drive',progress:'Progresso',settings:'Configurações',tutor:'Tutor IA',arena:'Arena'};
 function go(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+view).classList.add('active');
@@ -384,10 +384,20 @@ function renderChat(){
   const box=document.getElementById('msgs');box.scrollTop=box.scrollHeight;
 }
 function quickAsk(t){document.getElementById('chat-in').value=t;sendChat();}
-function sendChat(){
+async function sendChat(){
   const inp=document.getElementById('chat-in'),txt=inp.value.trim();if(!txt)return;
   CHAT.push({r:'user',t:txt});inp.value='';renderChat();
-  setTimeout(()=>{
+  if(groqKey()){ // IA real via Groq
+    CHAT.push({r:'ai',t:'…'});renderChat();
+    try{
+      const msgs=[{role:'system',content:'Você é o Tutor IA do Lumora, um app de estudos. Responda em português, de forma didática e concisa.'}];
+      CHAT.filter(m=>m.t!=='…').forEach(m=>msgs.push({role:m.r==='user'?'user':'assistant',content:m.t}));
+      const ans=await groqChat(msgs);
+      CHAT[CHAT.length-1]={r:'ai',t:esc(ans).replace(/\n/g,'<br>')};
+    }catch(e){CHAT[CHAT.length-1]={r:'ai',t:'⚠️ Erro Groq: '+esc(e.message)+'. Confira a chave em Configurações.'};}
+    renderChat();return;
+  }
+  setTimeout(()=>{ // fallback mock (sem chave)
     const r=REPLIES[/krebs/i.test(txt)?'krebs':'default'];
     CHAT.push({r:'ai',t:r.t,cite:r.cite,acts:r.acts});renderChat();
   },450);
@@ -794,6 +804,47 @@ function startEmoji(){
   _emojiMO.observe(document.body,{childList:true,subtree:true});
 }
 
+// ===== Groq (IA) =====
+const GROQ_KEY='lumora_groq_key',GROQ_MODEL='lumora_groq_model';
+function groqKey(){return localStorage.getItem(GROQ_KEY)||'';}
+function groqModel(){return localStorage.getItem(GROQ_MODEL)||'llama-3.3-70b-versatile';}
+async function groqChat(messages){
+  const key=groqKey();if(!key)throw new Error('sem chave');
+  const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify({model:groqModel(),messages,temperature:0.6})
+  });
+  if(!res.ok){let d='';try{d=(await res.json()).error?.message||''}catch(e){}throw new Error((res.status)+(d?' · '+d:''));}
+  const j=await res.json();return j.choices?.[0]?.message?.content?.trim()||'(resposta vazia)';
+}
+function loadGroqSettings(){
+  const k=document.getElementById('groq-key'),m=document.getElementById('groq-model');
+  if(k)k.value=groqKey();
+  if(m)m.value=groqModel();
+}
+function setGroqStatus(msg,cls){const el=document.getElementById('groq-status');if(!el)return;el.textContent=msg;el.className='set-status '+(cls||'muted');}
+function saveGroq(){
+  const k=document.getElementById('groq-key').value.trim(),m=document.getElementById('groq-model').value;
+  if(k)localStorage.setItem(GROQ_KEY,k);else localStorage.removeItem(GROQ_KEY);
+  localStorage.setItem(GROQ_MODEL,m);
+  setGroqStatus(k?'✓ Chave salva. Tutor IA ativado.':'Chave removida — Tutor IA em modo demo.','ok');
+}
+function clearGroq(){
+  localStorage.removeItem(GROQ_KEY);
+  const k=document.getElementById('groq-key');if(k)k.value='';
+  setGroqStatus('Chave removida — Tutor IA em modo demo.','ok');
+}
+async function testGroq(){
+  const k=document.getElementById('groq-key').value.trim();
+  if(!k){setGroqStatus('Cole uma chave primeiro.','err');return;}
+  localStorage.setItem(GROQ_KEY,k);localStorage.setItem(GROQ_MODEL,document.getElementById('groq-model').value);
+  setGroqStatus('Testando…','muted');
+  try{const r=await groqChat([{role:'user',content:'responda apenas: ok'}]);setGroqStatus('✓ Conectado. Resposta: '+r.slice(0,40),'ok');}
+  catch(e){setGroqStatus('✗ Falhou: '+e.message,'err');}
+}
+function toggleGroqKey(){const k=document.getElementById('groq-key');if(k)k.type=k.type==='password'?'text':'password';}
+
 // ===== Drive =====
 let driveFiles=[],driveFolders=[],driveCwd=null; // cwd null = raiz
 let driveUrls=[]; // objectURLs de miniaturas (revogados a cada render)
@@ -971,7 +1022,7 @@ addEventListener('DOMContentLoaded',async()=>{
   // autentica + carrega dados da nuvem (redireciona pro login se não houver sessão)
   if(window.cloudInit){ const ok=await cloudInit(); if(!ok)return; }
   const em=document.getElementById('acct-email'); if(em&&window.userEmail)em.textContent=userEmail()||'conta';
-  loadNotes();loadFDecks();renderDecks();renderImport();renderChat();initDrive();
+  loadNotes();loadFDecks();renderDecks();renderImport();renderChat();initDrive();loadGroqSettings();
   document.querySelectorAll('.navlink').forEach(l=>l.onclick=()=>go(l.dataset.view));
   startEmoji();
 });

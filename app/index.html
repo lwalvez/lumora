@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lumora — App</title>
-<link rel="stylesheet" href="css/style.css?v=29">
-<script src="js/icons.js?v=29"></script>
+<link rel="stylesheet" href="css/style.css?v=30">
+<script src="js/icons.js?v=30"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js?v=29"></script>
+<script src="js/supabase.js?v=30"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
 <style>
   body{display:flex;min-height:100vh}
@@ -265,6 +265,17 @@
     cursor:pointer;background:var(--surface-2);transition:.2s}
   .dv-mv-list .mv:hover{background:var(--primary);color:#fff}
   .dv-mv-list .mv[data-disabled]{opacity:.4;pointer-events:none}
+  /* Settings */
+  .set-lbl{display:block;font-size:13px;font-weight:600;color:var(--text-2);margin:14px 0 6px}
+  #view-settings input,#view-settings select{width:100%;padding:12px 14px;border-radius:var(--r-md);
+    border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:14px;font-family:inherit}
+  #view-settings input:focus,#view-settings select:focus{outline:none;border-color:var(--primary)}
+  .set-row{display:flex;gap:8px;align-items:center}
+  .set-row input{flex:1}
+  .set-row .theme-btn{width:44px;height:44px;flex-shrink:0;border-radius:var(--r-md)}
+  .set-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+  .set-status{font-size:13px;margin-top:12px;min-height:18px}
+  .set-status.ok{color:var(--success)}.set-status.err{color:var(--danger,#ff5a5a)}
   .imp{padding:26px 18px;border-radius:var(--r-lg);text-align:center;cursor:pointer;
     transition:transform .4s var(--spring),box-shadow .35s}
   .imp:hover{transform:translateY(-4px);box-shadow:var(--glow)}
@@ -395,6 +406,7 @@
   <div class="navlink" data-view="progress"><span class="nav-emo emo">📊</span>Progresso</div>
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor IA</div>
   <div class="navlink" data-view="arena"><span class="nav-emo emo">🎮</span>Arena</div>
+  <div class="navlink" data-view="settings"><span class="nav-emo emo">⚙️</span>Configurações</div>
   <div class="side-foot">
     <div class="acct">
       <div class="acct-user"><span class="sync-dot" id="sync-dot"></span><span id="acct-email" class="muted">—</span></div>
@@ -552,6 +564,33 @@
       </div>
     </div>
   </section>
+
+  <!-- SETTINGS -->
+  <section class="view" id="view-settings">
+    <div class="panel glass" style="max-width:640px">
+      <h3><svg><use href="#ic-spark"/></svg> IA · Groq API</h3>
+      <p class="muted" style="font-size:13px;margin-bottom:16px">Cole sua chave da Groq para ativar o Tutor IA. A chave fica salva só neste navegador (localStorage), nunca é enviada a outro servidor além da Groq.</p>
+      <label class="set-lbl">Chave da API (gsk_…)</label>
+      <div class="set-row">
+        <input id="groq-key" type="password" placeholder="gsk_..." autocomplete="off" spellcheck="false">
+        <button class="theme-btn" type="button" onclick="toggleGroqKey()" id="groq-eye" title="Mostrar/ocultar">👁️</button>
+      </div>
+      <label class="set-lbl">Modelo</label>
+      <select id="groq-model">
+        <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
+        <option value="llama-3.1-8b-instant">llama-3.1-8b-instant</option>
+        <option value="openai/gpt-oss-120b">openai/gpt-oss-120b</option>
+        <option value="qwen/qwen3-32b">qwen/qwen3-32b</option>
+      </select>
+      <div class="set-actions">
+        <button class="btn btn-grad" onclick="saveGroq()">Salvar</button>
+        <button class="btn" onclick="testGroq()">Testar conexão</button>
+        <button class="btn" onclick="clearGroq()">Remover chave</button>
+      </div>
+      <div id="groq-status" class="set-status muted"></div>
+      <p class="muted" style="font-size:12px;margin-top:14px">Pegue uma chave grátis em <b>console.groq.com/keys</b>.</p>
+    </div>
+  </section>
 </main>
 
 <nav class="mobile-nav">
@@ -562,6 +601,6 @@
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
 </nav>
 
-<script src="js/app.js?v=29"></script>
+<script src="js/app.js?v=30"></script>
 </body>
 </html>
