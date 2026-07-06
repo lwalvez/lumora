@@ -340,7 +340,7 @@
           </span>
           Lembrar de mim
         </label>
-        <a href="#">Esqueceu a senha?</a>
+        <a href="#" id="forgot">Esqueceu a senha?</a>
       </div>
 
       <button type="submit" class="btn" id="submitBtn">
@@ -398,8 +398,25 @@
   const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
   function enterLumora(){ window.location.href = LUMORA_APP; }
 
-  // já logado? entra direto
-  sb.auth.getSession().then(({data:{session}})=>{ if(session) enterLumora(); });
+  // já logado? entra direto (exceto quando chegou por link de redefinição de senha)
+  const isRecovery = location.hash.includes('type=recovery');
+  sb.auth.getSession().then(({data:{session}})=>{ if(session && !isRecovery) enterLumora(); });
+
+  // chegou pelo link "redefinir senha" do e-mail → pede a nova senha
+  sb.auth.onAuthStateChange(async (event) => {
+    if (event !== 'PASSWORD_RECOVERY') return;
+    let np = '';
+    while (true) {
+      np = prompt('Redefinição de senha — digite sua nova senha (mín. 6 caracteres):') || '';
+      if (!np) return; // cancelou
+      if (np.length >= 6) break;
+      alert('A senha precisa ter pelo menos 6 caracteres.');
+    }
+    const { error } = await sb.auth.updateUser({ password: np });
+    if (error) { flash(error.message); return; }
+    flash('Senha atualizada com sucesso!', true);
+    setTimeout(enterLumora, 900);
+  });
 
   const form = document.getElementById('form');
   const btn = document.getElementById('submitBtn');
@@ -407,9 +424,10 @@
   const pwEl = document.getElementById('password');
 
   function setLoading(on){ btn.classList.toggle('loading',on); btn.disabled=on; }
-  function flash(msg){
+  function flash(msg, ok){
     let n=document.getElementById('msg');
-    if(!n){n=document.createElement('p');n.id='msg';n.style.cssText='margin-top:14px;font-size:13px;text-align:center;color:#ff9bb0';form.appendChild(n);}
+    if(!n){n=document.createElement('p');n.id='msg';n.style.cssText='margin-top:14px;font-size:13px;text-align:center';form.appendChild(n);}
+    n.style.color = ok ? '#7dffc4' : '#ff9bb0';
     n.textContent=msg;
   }
 
@@ -433,8 +451,20 @@
     setLoading(false);
     if (error) { flash(error.message); return; }
     if (data.session) enterLumora();
-    else flash('Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre.');
+    else flash('Conta criada! Confirme pelo link enviado ao seu e-mail e depois entre.', true);
   }));
+
+  // Esqueceu a senha → e-mail de redefinição via Supabase
+  document.getElementById('forgot').addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = emailEl.value.trim();
+    if (!email) { flash('Digite seu e-mail acima e clique de novo em "Esqueceu a senha?".'); emailEl.focus(); return; }
+    setLoading(true);
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.href });
+    setLoading(false);
+    if (error) { flash(error.message); return; }
+    flash('Enviamos um link de redefinição para ' + email + '. Confira sua caixa de entrada.', true);
+  });
 
   // Social (OAuth precisa estar configurado no Supabase; não funciona via file://)
   document.querySelectorAll('.social').forEach(b => b.addEventListener('click', () =>

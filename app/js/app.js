@@ -60,14 +60,14 @@ function renderCard(){
     <div class="flashcard" id="fc" onclick="flip()">
       <div class="fc-inner">
         <div class="fc-face glass">
-          <div class="lbl">${c.bloom} · Active Recall</div>
-          <div class="q">${c.q}</div>
-          <div class="fc-src"><svg class="ic"><use href="#ic-file"/></svg> ${c.src}</div>
+          <div class="lbl">${esc(c.bloom)} · Active Recall</div>
+          <div class="q">${esc(c.q)}</div>
+          <div class="fc-src"><svg class="ic"><use href="#ic-file"/></svg> ${esc(c.src)}</div>
         </div>
         <div class="fc-face fc-back glass glass-strong">
           <div class="lbl">Resposta</div>
-          <div class="a">${c.a}</div>
-          <div class="fc-src"><svg class="ic"><use href="#ic-file"/></svg> ${c.src}</div>
+          <div class="a">${esc(c.a)}</div>
+          <div class="fc-src"><svg class="ic"><use href="#ic-file"/></svg> ${esc(c.src)}</div>
         </div>
       </div>
     </div>
@@ -438,14 +438,14 @@ function renderChat(){
 function quickAsk(t){document.getElementById('chat-in').value=t;sendChat();}
 async function sendChat(){
   const inp=document.getElementById('chat-in'),txt=inp.value.trim();if(!txt)return;
-  CHAT.push({r:'user',t:esc(txt)});inp.value='';renderChat();
+  CHAT.push({r:'user',t:esc(txt),raw:txt});inp.value='';renderChat();
   if(groqKey()){ // IA real via Groq
     CHAT.push({r:'ai',t:'…'});renderChat();
     try{
       const msgs=[{role:'system',content:'Você é o Tutor IA do Lumora, um app de estudos. Responda em português, de forma didática e concisa.'}];
-      CHAT.filter(m=>m.t!=='…').forEach(m=>msgs.push({role:m.r==='user'?'user':'assistant',content:m.t}));
+      CHAT.filter(m=>m.t!=='…').forEach(m=>msgs.push({role:m.r==='user'?'user':'assistant',content:m.raw||htmlToText(m.t)}));
       const ans=await groqChat(msgs);
-      CHAT[CHAT.length-1]={r:'ai',t:esc(ans).replace(/\n/g,'<br>')};
+      CHAT[CHAT.length-1]={r:'ai',t:esc(ans).replace(/\n/g,'<br>'),raw:ans};
     }catch(e){CHAT[CHAT.length-1]={r:'ai',t:'⚠️ Erro Groq: '+esc(e.message)+'. Confira a chave em Configurações.'};}
     renderChat();return;
   }
@@ -567,7 +567,6 @@ function renderNotes(){
   renderEditor();
 }
 function setNoteFilter(t){noteFilter=t;renderNotes();}
-function esc(s){return(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function openNote(id){activeNote=id;renderNotes();}
 function newNote(){
   const n={id:'n'+Date.now(),title:'',tag:'Geral',body:'',updated:Date.now()};
@@ -677,13 +676,13 @@ function newFolder(){
   const f={id:'fo'+Date.now(),name:(n.trim()||'Pasta')};
   FFOLDERS.push(f);persistFolders();activeFolder=f.id;renderFlash();
 }
-function delFolder(id){
+function delFFolder(id){
   if(!confirm('Excluir esta pasta? Os decks dentro ficam sem pasta (não são apagados).'))return;
   FFOLDERS=FFOLDERS.filter(f=>f.id!==id);
   FDECKS.forEach(d=>{if(d.folderId===id)d.folderId=null;});
   persistFolders();persistFDecks();activeFolder='all';renderFlash();
 }
-function renameFolder(id){
+function renameFFolder(id){
   const f=FFOLDERS.find(x=>x.id===id);if(!f)return;
   const n=prompt('Renomear pasta:',f.name);if(n===null)return;
   f.name=n.trim()||f.name;persistFolders();renderFlash();
@@ -720,8 +719,8 @@ function renderFDeckGrid(root){
       <span class="ntag ${activeFolder==='none'?'on':''}" onclick="setFolder('none')" ondragover="fcOver(event,this)" ondragleave="fcLeave(this)" ondrop="fcDrop(event,'')">Sem pasta · ${FDECKS.filter(d=>!d.folderId).length}</span>
       <span class="ntag add-folder" onclick="newFolder()">+ Nova pasta</span>
       ${(activeFolder!=='all'&&activeFolder!=='none')?`
-        <span class="ntag mini-act" onclick="renameFolder('${activeFolder}')"><svg class="ic"><use href="#ic-note"/></svg></span>
-        <span class="ntag mini-act danger" onclick="delFolder('${activeFolder}')"><svg class="ic"><use href="#ic-trash"/></svg></span>`:''}
+        <span class="ntag mini-act" onclick="renameFFolder('${activeFolder}')"><svg class="ic"><use href="#ic-note"/></svg></span>
+        <span class="ntag mini-act danger" onclick="delFFolder('${activeFolder}')"><svg class="ic"><use href="#ic-trash"/></svg></span>`:''}
     </div>`;
   root.innerHTML=`
     <div class="fc-bar">
