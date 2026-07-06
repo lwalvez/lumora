@@ -14,30 +14,19 @@ function toggleTheme(){
 document.documentElement.setAttribute('data-theme',localStorage.getItem('lumora-theme')||'dark');
 
 // ---- navigation ----
-const TITLES={today:'Hoje',library:'Biblioteca',flashcards:'Flashcards',notes:'Notas',study:'Estudar',import:'Importar',drive:'Mesa de estudos',progress:'Progresso',sim:'Simulados',settings:'Configurações',tutor:'Tutor IA',arena:'Arena'};
+const TITLES={today:'Hoje',flashcards:'Flashcards',notes:'Notas',study:'Estudar',import:'Importar',drive:'Mesa de estudos',sim:'Simulados',settings:'Configurações',tutor:'Tutor IA'};
 function go(view){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+view).classList.add('active');
   document.querySelectorAll('.navlink').forEach(l=>l.classList.toggle('active',l.dataset.view===view));
   document.getElementById('title').textContent=TITLES[view];
   document.querySelector('main').scrollTo(0,0);
-  if(view==='progress')drawCharts();
   if(view==='notes')renderNotes();
   if(view==='flashcards')renderFlash();
 }
 function studyNow(){startSession();go('study');}
 
 // ---- data ----
-const DECKS=[
-  {e:'🧬',t:'Biologia Celular',n:142,m:78},
-  {e:'⚛️',t:'Física — Mecânica',n:98,m:52},
-  {e:'⚖️',t:'Direito Constitucional',n:210,m:64},
-  {e:'🇬🇧',t:'Inglês — Phrasal Verbs',n:180,m:88},
-  {e:'🧪',t:'Química Orgânica',n:120,m:41},
-  {e:'💻',t:'System Design',n:75,m:70},
-  {e:'📜',t:'História do Brasil',n:160,m:59},
-  {e:'🫀',t:'Anatomia',n:300,m:33},
-];
 const CARDS=[
   {q:'Qual a função da mitocôndria?',a:'Produção de energia (ATP) via respiração celular.',src:'Bio_cap4.pdf · p.12',bloom:'Lembrar'},
   {q:'Defina a 2ª Lei de Newton.',a:'F = m·a — a força resultante é igual à massa vezes a aceleração.',src:'Fisica_aula3.pdf · p.7',bloom:'Entender'},
@@ -46,16 +35,6 @@ const CARDS=[
   {q:'O que é uma transação ACID?',a:'Atomicidade, Consistência, Isolamento e Durabilidade — garantias de banco de dados.',src:'SystemDesign.pdf · p.44',bloom:'Entender'},
 ];
 const GRADES=[['Errei','<1min','g0'],['Difícil','~10min','g1'],['Bom','2 dias','g2'],['Fácil','5 dias','g3']];
-
-function renderDecks(){
-  document.getElementById('decks').innerHTML=DECKS.map(d=>`
-    <div class="deck glass" onclick="studyNow()">
-      <div class="emoji">${d.e}</div>
-      <h4>${d.t}</h4>
-      <div class="meta">${d.n} cards · ${d.m}% domínio</div>
-      <div class="bar"><i style="width:${d.m}%;${d.m<55?'background:var(--warning)':''}"></i></div>
-    </div>`).join('');
-}
 
 // ---- study session ----
 let sIdx=0,sFlip=false,STUDY_CARDS=CARDS,SESSION_LEN=5,studyBack='today',sResults=[],cardDir='next';
@@ -436,40 +415,6 @@ function finishMatch(){
       <button class="btn btn-grad" onclick="startMatch()">Jogar de novo</button>
       <button class="btn btn-glass" onclick="exportSessionToDrive('Match')"><span class="nav-emo emo">📁</span> Exportar para o Drive</button>
       <button class="btn btn-ghost" onclick="showDone()">Modos</button></div></div>`;
-}
-
-// ---- charts (SVG) ----
-function drawCharts(){
-  const pts=[20,28,25,40,45,38,52,60,58,70,75,82,79,88,91];
-  const W=460,H=180,pad=10,max=100,step=(W-pad*2)/(pts.length-1);
-  const xy=pts.map((p,i)=>[pad+i*step,H-pad-(p/max)*(H-pad*2)]);
-  const line=xy.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
-  const area=line+` L ${xy.at(-1)[0].toFixed(1)} ${H-pad} L ${pad} ${H-pad} Z`;
-  document.getElementById('chart-line').innerHTML=`
-    <svg viewBox="0 0 ${W} ${H}" style="width:100%">
-      <defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="var(--primary)" stop-opacity=".4"/>
-        <stop offset="100%" stop-color="var(--primary)" stop-opacity="0"/></linearGradient></defs>
-      <path d="${area}" fill="url(#lg)"/>
-      <path d="${line}" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      ${xy.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="var(--primary)"/>`).join('')}
-    </svg>
-    <div class="muted" style="font-size:13px;text-align:center;margin-top:4px">Retenção média por semana ↑</div>`;
-
-  const m=[['Biologia',78],['Inglês',88],['Direito',64],['Física',52],['História',59],['Química',41]];
-  document.getElementById('chart-mastery').innerHTML=m.map(x=>`
-    <div style="margin:11px 0">
-      <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:5px">
-        <span>${x[0]}</span><span class="muted">${x[1]}%</span></div>
-      <div class="bar"><i style="width:${x[1]}%;${x[1]<55?'background:var(--warning)':''}"></i></div>
-    </div>`).join('');
-
-  let cells='';
-  for(let i=0;i<26*7;i++){
-    const v=(i*37+13)%5,op=[0.06,0.3,0.5,0.75,1][v];
-    cells+=`<span style="background:color-mix(in srgb,var(--primary) ${op*100}%,var(--surface-2))"></span>`;
-  }
-  document.getElementById('heat').innerHTML=cells;
 }
 
 // ---- tutor ----
@@ -1460,7 +1405,7 @@ addEventListener('DOMContentLoaded',async()=>{
   // autentica + carrega dados da nuvem (redireciona pro login se não houver sessão)
   if(window.cloudInit){ const ok=await cloudInit(); if(!ok)return; }
   const em=document.getElementById('acct-email'); if(em&&window.userEmail)em.textContent=userEmail()||'conta';
-  loadNotes();loadFDecks();renderDecks();renderImport();renderChat();initDrive();loadGroqSettings();
+  loadNotes();loadFDecks();renderImport();renderChat();initDrive();loadGroqSettings();
   loadSimHist();renderSimHist();
   document.querySelectorAll('.navlink').forEach(l=>l.onclick=()=>go(l.dataset.view));
   startEmoji();

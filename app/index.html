@@ -459,16 +459,13 @@
 
 <aside>
   <a href="#" class="brand"><span class="dot"></span>Lumora</a>
-  <div class="navlink active" data-view="today"><span class="nav-emo emo">🏠</span>Hoje</div>
-  <div class="navlink" data-view="library"><span class="nav-emo emo">📚</span>Biblioteca</div>
-  <div class="navlink" data-view="flashcards"><span class="nav-emo emo">🃏</span>Flashcards</div>
-  <div class="navlink" data-view="notes"><span class="nav-emo emo">🗒️</span>Notas</div>
-  <div class="navlink" data-view="import"><span class="nav-emo emo">➕</span>Importar</div>
-  <div class="navlink" data-view="drive"><span class="nav-emo emo">📁</span>Mesa de estudos</div>
-  <div class="navlink" data-view="progress"><span class="nav-emo emo">📊</span>Progresso</div>
   <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor IA</div>
-  <div class="navlink" data-view="arena"><span class="nav-emo emo">🎮</span>Arena</div>
+  <div class="navlink" data-view="drive"><span class="nav-emo emo">📁</span>Mesa de estudos</div>
+  <div class="navlink" data-view="flashcards"><span class="nav-emo emo">🃏</span>Flashcards</div>
   <div class="navlink" data-view="sim"><span class="nav-emo emo">📝</span>Simulados</div>
+  <div class="navlink" data-view="notes"><span class="nav-emo emo">🗒️</span>Notas</div>
+  <div class="navlink active" data-view="today"><span class="nav-emo emo">🏠</span>Hoje</div>
+  <div class="navlink" data-view="import"><span class="nav-emo emo">➕</span>Importar</div>
   <div class="navlink" data-view="settings"><span class="nav-emo emo">⚙️</span>Configurações</div>
   <div class="side-foot">
     <div class="acct">
@@ -525,8 +522,6 @@
 
   <!-- STUDY --><section class="view" id="view-study"><div class="session" id="session"></div></section>
 
-  <!-- LIBRARY --><section class="view" id="view-library"><div class="grid g4" id="decks"></div></section>
-
   <!-- FLASHCARDS --><section class="view" id="view-flashcards">
     <input type="file" id="sheet-file" accept=".xlsx,.xls,.csv,.tsv,.txt" style="display:none" onchange="handleSheetFile(this)">
     <div id="fc-root"></div>
@@ -581,21 +576,6 @@
     </div>
   </section>
 
-  <!-- PROGRESS -->
-  <section class="view" id="view-progress">
-    <div class="grid g4" style="margin-bottom:16px">
-      <div class="panel glass"><div class="stat">42h</div><div class="stat-lbl">Tempo estudado</div></div>
-      <div class="panel glass"><div class="stat">12</div><div class="stat-lbl">Dias consecutivos</div></div>
-      <div class="panel glass"><div class="stat" style="color:var(--success)">91%</div><div class="stat-lbl">Retenção</div></div>
-      <div class="panel glass"><div class="stat">720<small style="font-size:15px;color:var(--muted)"> ±30</small></div><div class="stat-lbl">Nota prevista</div></div>
-    </div>
-    <div class="grid g2">
-      <div class="panel glass"><h3><svg><use href="#ic-chart"/></svg> Curva de aprendizado</h3><div id="chart-line"></div></div>
-      <div class="panel glass"><h3><svg><use href="#ic-target"/></svg> Domínio por assunto</h3><div id="chart-mastery"></div></div>
-    </div>
-    <div class="panel glass" style="margin-top:16px"><h3><svg><use href="#ic-flame"/></svg> Atividade (calendário)</h3><div class="heat" id="heat"></div></div>
-  </section>
-
   <!-- TUTOR -->
   <section class="view active" id="view-tutor">
     <div class="chat">
@@ -609,27 +589,6 @@
         <button class="btn" onclick="chatCopy()"><span class="nav-emo emo">📋</span> Copiar</button>
         <button class="btn" onclick="chatTxt()"><span class="nav-emo emo">💾</span> Exportar .txt</button>
         <button class="btn" onclick="chatClear()"><span class="nav-emo emo">🗑️</span> Limpar</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- ARENA -->
-  <section class="view" id="view-arena">
-    <div class="grid g3">
-      <div class="panel glass"><div class="stat">Nível 8</div><div class="stat-lbl">1.240 / 1.500 XP</div><div class="bar"><i style="width:82%"></i></div></div>
-      <div class="panel glass"><div class="stat">Prata II</div><div class="stat-lbl">Liga · 4º lugar</div></div>
-      <div class="panel glass"><div class="stat">340</div><div class="stat-lbl">Moedas</div></div>
-    </div>
-    <div class="grid g2" style="margin-top:16px">
-      <div class="panel glass"><h3><svg><use href="#ic-target"/></svg> Missões de hoje</h3>
-        <div class="row"><span>Estudar 20 min</span><span class="pill ok">+50 XP</span></div>
-        <div class="row"><span>Acertar 15 cards</span><span class="pill due">7/15</span></div>
-        <div class="row"><span>Fechar 1 lacuna</span><span class="pill due">0/1</span></div>
-      </div>
-      <div class="panel glass"><h3><svg><use href="#ic-star"/></svg> Conquistas</h3>
-        <div class="row"><span>Streak de 7 dias</span><span class="pill ok">✓</span></div>
-        <div class="row"><span>100 cards dominados</span><span class="pill ok">✓</span></div>
-        <div class="row"><span>Primeira prova simulada</span><span class="muted">bloqueado</span></div>
       </div>
     </div>
   </section>
@@ -691,13 +650,12 @@
 </main>
 
 <nav class="mobile-nav">
-  <div class="navlink active" data-view="today"><span class="nav-emo emo">🏠</span>Hoje</div>
+  <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
   <div class="navlink" data-view="flashcards"><span class="nav-emo emo">🃏</span>Cards</div>
   <div class="navlink" data-view="notes"><span class="nav-emo emo">🗒️</span>Notas</div>
-  <div class="navlink" data-view="progress"><span class="nav-emo emo">📊</span>Stats</div>
-  <div class="navlink" data-view="tutor"><span class="nav-emo emo">🎓</span>Tutor</div>
+  <div class="navlink active" data-view="today"><span class="nav-emo emo">🏠</span>Hoje</div>
 </nav>
 
-<script src="js/app.js?v=41"></script>
+<script src="js/app.js?v=42"></script>
 </body>
 </html>
