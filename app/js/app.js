@@ -142,6 +142,8 @@ function prevCard(){if(sBusy||sIdx<=0)return;cardDir='prev';leaveThen(()=>{sIdx-
 document.addEventListener('keydown',e=>{
   const v=document.getElementById('view-study');
   if(!v||!v.classList.contains('active'))return;
+  if(e.target.closest&&e.target.closest('input,textarea,select,[contenteditable]'))return; // digitando → ignora atalhos
+  if(typeof uiModalOpen==='function'&&uiModalOpen())return; // diálogo aberto → ignora atalhos
   // tela final: → refaz tudo · ← refaz os que errei (só quando a tela de resultado está visível)
   if(sIdx>=SESSION_LEN){
     if(!document.querySelector('.done-wrap'))return; // Test/Match ativo → ignora teclas
@@ -467,8 +469,8 @@ function chatTxt(){
   a.href=u;a.download='lumora-tutor-'+new Date().toISOString().slice(0,10)+'.txt';a.click();
   setTimeout(()=>URL.revokeObjectURL(u),3000);
 }
-function chatClear(){
-  if(!confirm('Limpar toda a conversa?'))return;
+async function chatClear(){
+  if(!await uiConfirm('Limpar conversa','Toda a conversa com o Tutor IA será apagada.','Limpar'))return;
   CHAT.length=0;
   CHAT.push({r:'ai',t:'Olá! Sou seu tutor. Pergunte sobre qualquer material que você importou — eu explico e cito a fonte. <span class="emo">📚</span>',cite:'',acts:['Me teste em Biologia','Explique o Ciclo de Krebs']});
   renderChat();
@@ -495,6 +497,53 @@ function toast(msg,cls){
   t.textContent=msg;t.className=cls==='err'?'err':'';t.classList.add('show');
   clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2200);
 }
+
+// ===== Diálogos in-app (substituem prompt/confirm/alert nativos) =====
+let _uiRes=null;
+function uiDialog({title,msg,input,value,placeholder,okLabel,cancelLabel,danger}){
+  return new Promise(res=>{
+    if(_uiRes)_uiRes(null); // fecha diálogo pendente, se houver
+    _uiRes=res;
+    let m=document.getElementById('ui-modal');
+    if(!m){
+      m=document.createElement('div');m.id='ui-modal';m.className='ui-modal';
+      m.innerHTML='<div class="ui-bg" onclick="uiClose(null)"></div><div class="ui-box glass glass-strong" role="dialog" aria-modal="true"></div>';
+      document.body.appendChild(m);
+    }
+    const box=m.querySelector('.ui-box');
+    box.innerHTML=`
+      <h3>${title||''}</h3>
+      ${msg?`<p class="ui-msg">${msg}</p>`:''}
+      ${input?`<input id="ui-in" class="t-input" placeholder="${esc(placeholder||'')}" value="${esc(value||'')}" autocomplete="off" spellcheck="false">`:''}
+      <div class="ui-acts">
+        <button class="btn btn-ghost" onclick="uiClose(null)">${cancelLabel||'Cancelar'}</button>
+        <button class="btn ${danger?'ui-danger':'btn-grad'}" onclick="uiOk()">${okLabel||'OK'}</button>
+      </div>`;
+    m.classList.add('show');
+    const inp=document.getElementById('ui-in');
+    if(inp){setTimeout(()=>{inp.focus();inp.select();},60);inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();uiOk();}};}
+    if(window.twemoji)twemoji.parse(box);
+  });
+}
+function uiOk(){
+  const inp=document.getElementById('ui-in');
+  const val=inp?inp.value:true;
+  const m=document.getElementById('ui-modal');if(m)m.classList.remove('show');
+  const r=_uiRes;_uiRes=null;if(r)r(val);
+}
+function uiClose(v){
+  const m=document.getElementById('ui-modal');if(m)m.classList.remove('show');
+  const r=_uiRes;_uiRes=null;if(r)r(v===undefined?null:v);
+}
+function uiPrompt(title,value,placeholder,msg){return uiDialog({title,msg,input:true,value,placeholder,okLabel:'Salvar'});}
+async function uiConfirm(title,msg,okLabel,danger){
+  const r=await uiDialog({title,msg,okLabel:okLabel||'Confirmar',danger:danger!==false});
+  return r!==null;
+}
+function uiModalOpen(){const m=document.getElementById('ui-modal');return !!(m&&m.classList.contains('show'));}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&uiModalOpen()){e.preventDefault();e.stopImmediatePropagation();uiClose(null);}
+});
 
 // ---- import ----
 const SOURCES=[['file','PDF'],['cam','Foto / Scanner'],['play','YouTube'],['link','Link'],['mic','Áudio'],['text','Texto'],['grad','Notion'],['library','Google Drive'],['crystal','OneDrive']];
@@ -573,8 +622,8 @@ function newNote(){
   NOTES.unshift(n);persistNotes();activeNote=n.id;renderNotes();
   setTimeout(()=>{const t=document.querySelector('.ed-title');if(t)t.focus();},50);
 }
-function deleteNote(id){
-  if(!confirm('Excluir esta nota? Não pode ser desfeito.'))return;
+async function deleteNote(id){
+  if(!await uiConfirm('Excluir nota','Esta ação não pode ser desfeita.','Excluir'))return;
   NOTES=NOTES.filter(n=>n.id!==id);persistNotes();
   if(activeNote===id)activeNote=null;renderNotes();
 }
@@ -671,20 +720,20 @@ function loadFDecks(){
 function persistFDecks(){localStorage.setItem('lumora-fdecks',JSON.stringify(FDECKS));if(window.cloudSync)cloudSync();}
 function persistFolders(){localStorage.setItem('lumora-ffolders',JSON.stringify(FFOLDERS));if(window.cloudSync)cloudSync();}
 function setFolder(id){activeFolder=id;renderFlash();}
-function newFolder(){
-  const n=prompt('Nome da pasta:');if(n===null)return;
+async function newFolder(){
+  const n=await uiPrompt('Nova pasta','','Ex.: Vestibular, Idiomas…');if(n===null)return;
   const f={id:'fo'+Date.now(),name:(n.trim()||'Pasta')};
   FFOLDERS.push(f);persistFolders();activeFolder=f.id;renderFlash();
 }
-function delFFolder(id){
-  if(!confirm('Excluir esta pasta? Os decks dentro ficam sem pasta (não são apagados).'))return;
+async function delFFolder(id){
+  if(!await uiConfirm('Excluir pasta','Os decks dentro ficam sem pasta (não são apagados).','Excluir'))return;
   FFOLDERS=FFOLDERS.filter(f=>f.id!==id);
   FDECKS.forEach(d=>{if(d.folderId===id)d.folderId=null;});
   persistFolders();persistFDecks();activeFolder='all';renderFlash();
 }
-function renameFFolder(id){
+async function renameFFolder(id){
   const f=FFOLDERS.find(x=>x.id===id);if(!f)return;
-  const n=prompt('Renomear pasta:',f.name);if(n===null)return;
+  const n=await uiPrompt('Renomear pasta',f.name);if(n===null)return;
   f.name=n.trim()||f.name;persistFolders();renderFlash();
 }
 function setDeckFolder(deckId,folderId){
@@ -768,9 +817,16 @@ function renderFDeckDetail(root){
       </div>
     </div>
     <div class="panel glass">
+      <div class="deck-lang">
+        <span class="muted" style="font-size:13px">Traduzir verso para:</span>
+        <select onchange="setDeckLang(this)">
+          ${DECK_LANGS.map(l=>`<option value="${l.c}" ${(d.lang||'')===l.c?'selected':''}>${l.n}</option>`).join('')}
+        </select>
+        ${d.lang?`<span class="muted" style="font-size:12px">deixe o verso vazio → traduz a frente</span>`:''}
+      </div>
       <div class="card-add">
         <input id="cf" placeholder="Frente (pergunta)" onkeydown="if(event.key==='Enter')addCard()">
-        <input id="cb" placeholder="Verso (resposta)" onkeydown="if(event.key==='Enter')addCard()">
+        <input id="cb" placeholder="${d.lang?'Verso (auto — vazio p/ traduzir)':'Verso (resposta)'}" onkeydown="if(event.key==='Enter')addCard()">
         <button class="btn btn-grad" onclick="addCard()" aria-label="Adicionar"><svg class="ic"><use href="#ic-plus"/></svg></button>
       </div>
       <div class="clist">
@@ -790,25 +846,65 @@ function exportFDeck(id){
   const cards=d.cards.map(c=>({q:c.front,a:c.back}));
   exportSessionToDrive('Flashcards · '+d.title,cards);
 }
-function newFDeck(){
-  const title=prompt('Nome do deck:','Novo deck');if(title===null)return;
+async function newFDeck(){
+  const title=await uiPrompt('Novo deck','Novo deck','Nome do deck');if(title===null)return;
   const d={id:'fd'+Date.now(),e:'🃏',title:title.trim()||'Novo deck',cards:[],folderId:curFolderId()};
   FDECKS.unshift(d);persistFDecks();activeFDeck=d.id;renderFlash();
 }
-function newFolderForDeck(deckId){
-  const n=prompt('Nome da nova pasta:');if(n===null)return;
+async function newFolderForDeck(deckId){
+  const n=await uiPrompt('Nova pasta','','Nome da pasta');if(n===null)return;
   const f={id:'fo'+Date.now(),name:(n.trim()||'Pasta')};
   FFOLDERS.push(f);persistFolders();setDeckFolder(deckId,f.id);
 }
-function delFDeck(id){
-  if(!confirm('Excluir este deck e todos os cards?'))return;
-  FDECKS=FDECKS.filter(d=>d.id!==id);persistFDecks();activeFDeck=null;renderFlash();
+async function delFDeck(id){
+  const d=FDECKS.find(x=>x.id===id);if(!d)return;
+  if(!await uiConfirm(`Excluir "${esc(d.title)}"`,'O deck e todos os cards dele serão apagados.','Excluir'))return;
+  FDECKS=FDECKS.filter(x=>x.id!==id);persistFDecks();activeFDeck=null;renderFlash();
 }
-function addCard(){
+// ---- tradução automática do verso ----
+const DECK_LANGS=[
+  {c:'',n:'— sem tradução —'},
+  {c:'en',n:'Inglês'},{c:'es',n:'Espanhol'},{c:'fr',n:'Francês'},
+  {c:'de',n:'Alemão'},{c:'it',n:'Italiano'},{c:'pt',n:'Português'},
+  {c:'ja',n:'Japonês'},{c:'zh-CN',n:'Chinês'},{c:'ru',n:'Russo'},
+  {c:'ko',n:'Coreano'},{c:'ar',n:'Árabe'}
+];
+function setDeckLang(sel){
+  const d=FDECKS.find(x=>x.id===activeFDeck);if(!d)return;
+  d.lang=sel.value;persistFDecks();renderFlash();
+}
+async function translateText(text,lang){
+  if(!lang||!text)return '';
+  try{ // Google translate (gtx) — grátis, sem chave, detecta idioma de origem
+    const url='https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl='+encodeURIComponent(lang)+'&dt=t&q='+encodeURIComponent(text);
+    const r=await fetch(url);if(!r.ok)throw new Error(r.status);
+    const j=await r.json();
+    const out=(j[0]||[]).map(s=>s&&s[0]).filter(Boolean).join('').trim();
+    if(out)return out;
+    throw new Error('vazio');
+  }catch(e){ // fallback: Groq, se tiver chave
+    if(groqKey()){
+      try{return (await groqChat([
+        {role:'system',content:'Translate the user text to the language with ISO code "'+lang+'". Reply with ONLY the translation, no quotes, no notes.'},
+        {role:'user',content:text}
+      ])).trim();}catch(_){}
+    }
+    return '';
+  }
+}
+async function addCard(){
   const d=FDECKS.find(x=>x.id===activeFDeck);if(!d)return;
   const cf=document.getElementById('cf'),cb=document.getElementById('cb');
-  const front=cf.value.trim(),back=cb.value.trim();
-  if(!front||!back){cf.focus();return;}
+  const front=cf.value.trim();let back=cb.value.trim();
+  if(!front){cf.focus();return;}
+  if(!back){
+    if(!d.lang){cb.focus();return;}
+    const btn=document.querySelector('.card-add .btn-grad');
+    if(btn)btn.disabled=true;cb.placeholder='traduzindo…';
+    back=await translateText(front,d.lang);
+    if(btn)btn.disabled=false;
+    if(!back){toast('Falha ao traduzir — preencha o verso à mão','err');cb.focus();return;}
+  }
   d.cards.push({front,back});persistFDecks();renderFlash();
   setTimeout(()=>{const n=document.getElementById('cf');if(n)n.focus();},30);
 }

@@ -394,6 +394,10 @@
     background:var(--surface-2);color:var(--text);font-family:var(--font);font-size:14.5px}
   .card-add input:focus{outline:none;box-shadow:0 0 0 2px var(--primary-2)}
   .card-add button{width:50px;border-radius:var(--r-md)}
+  .deck-lang{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px}
+  .deck-lang select{padding:9px 12px;border-radius:var(--r-md);border:1px solid var(--glass-brd);
+    background:var(--surface-2);color:var(--text);font-family:var(--font);font-size:14px;max-width:220px}
+  .deck-lang select:focus{outline:none;box-shadow:0 0 0 2px var(--primary-2)}
   @media(max-width:640px){.crow,.card-add{grid-template-columns:1fr}}
 
   /* notes */
@@ -442,6 +446,23 @@
     .notes-wrap{grid-template-columns:1fr;height:auto}
     .note-editor{min-height:60vh}
   }
+
+  /* ===== UI dialogs (substituem prompt/confirm/alert nativos) ===== */
+  .ui-modal{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:24px;
+    opacity:0;pointer-events:none;transition:opacity .22s var(--ease)}
+  .ui-modal.show{opacity:1;pointer-events:auto}
+  .ui-modal .ui-bg{position:absolute;inset:0;background:rgba(8,8,18,.6);backdrop-filter:blur(7px)}
+  .ui-modal .ui-box{position:relative;width:min(92vw,430px);border-radius:var(--r-2xl);padding:26px;
+    box-shadow:var(--shadow-lg),var(--glow);transform:translateY(16px) scale(.96);
+    transition:transform .35s var(--spring)}
+  .ui-modal.show .ui-box{transform:none}
+  .ui-box h3{font-size:17px;font-weight:700;margin-bottom:8px;display:flex;gap:9px;align-items:center}
+  .ui-box .ui-msg{font-size:14px;color:var(--text-2);line-height:1.55}
+  .ui-box .t-input{margin-top:14px}
+  .ui-acts{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
+  .btn.ui-danger{background:linear-gradient(135deg,#ff5d6c,#e03131);color:#fff;border-color:transparent;
+    box-shadow:0 8px 26px rgba(255,93,108,.4),inset 0 1px 0 rgba(255,255,255,.35)}
+  .btn.ui-danger:hover{transform:translateY(-2px);box-shadow:0 12px 34px rgba(255,93,108,.55)}
 
   .mobile-nav{display:none}
   @media(max-width:780px){
