@@ -477,8 +477,13 @@ async function chatClear(){
 }
 function chatPDF(){
   const rows=CHAT.map(m=>`<div class="m ${m.r}"><b>${m.r==='user'?'Você':'Tutor IA'}</b><p>${esc(htmlToText(m.t)).replace(/\n/g,'<br>')}</p></div>`).join('');
-  const w=window.open('','_blank');if(!w){toast('Permita pop-ups para gerar o PDF','err');return;}
-  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Tutor IA — Conversa</title>
+  const old=document.getElementById('print-frame');if(old)old.remove();
+  const fr=document.createElement('iframe');fr.id='print-frame';
+  fr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(fr);
+  const doc=fr.contentDocument||fr.contentWindow.document;
+  doc.open();
+  doc.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Tutor IA — Conversa</title>
     <style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;max-width:720px;margin:32px auto;padding:0 20px;color:#1a1a2e}
     h1{font-size:20px;border-bottom:2px solid #7c5cff;padding-bottom:10px}
     .meta{color:#888;font-size:12px;margin-bottom:22px}
@@ -487,9 +492,10 @@ function chatPDF(){
     .m.ai{background:#f4f5f8;border-left:3px solid #34e0a1}
     .m b{display:block;font-size:12px;color:#7c5cff;margin-bottom:4px}
     .m.ai b{color:#1aa47a}.m p{margin:0;font-size:14px;line-height:1.55;white-space:pre-wrap}</style></head>
-    <body><h1>Lumora · Tutor IA</h1><div class="meta">Conversa exportada em ${new Date().toLocaleString('pt-BR')}</div>${rows}
-    <script>onload=()=>{print();}<\/script></body></html>`);
-  w.document.close();
+    <body><h1>Lumora · Tutor IA</h1><div class="meta">Conversa exportada em ${new Date().toLocaleString('pt-BR')}</div>${rows}</body></html>`);
+  doc.close();
+  toast('Abrindo impressão — escolha "Salvar como PDF"');
+  setTimeout(()=>{try{fr.contentWindow.focus();fr.contentWindow.print();}catch(e){toast('Não consegui abrir a impressão','err');}},400);
 }
 function toast(msg,cls){
   let t=document.getElementById('dv-toast');
@@ -926,13 +932,13 @@ function handleSheetFile(input){
   const ext=(f.name.split('.').pop()||'').toLowerCase();
   const r=new FileReader();
   if(ext==='xlsx'||ext==='xls'){
-    if(typeof XLSX==='undefined'){alert('Leitor de Excel não carregou (precisa de internet). Salve como CSV e tente.');input.value='';return;}
+    if(typeof XLSX==='undefined'){toast('Leitor de Excel não carregou (precisa de internet). Salve como CSV e tente.','err');input.value='';return;}
     r.onload=e=>{
       try{
         const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
         const ws=wb.Sheets[wb.SheetNames[0]];
         buildDeckFromRows(XLSX.utils.sheet_to_json(ws,{header:1,defval:''}),name);
-      }catch(err){alert('Erro ao ler o Excel.');}
+      }catch(err){toast('Erro ao ler o Excel.','err');}
     };
     r.readAsArrayBuffer(f);
   }else{
@@ -969,20 +975,23 @@ function buildDeckFromRows(rows,name){
     if(!front||!back)return;
     cards.push({front,back});
   });
-  if(!cards.length){alert('Nenhum card válido. Use 2 colunas: frente | verso.');return;}
+  if(!cards.length){toast('Nenhum card válido. Use 2 colunas: frente | verso.','err');return;}
   const d={id:'fd'+Date.now(),e:'📊',title:(name||'Planilha').slice(0,40),cards,folderId:curFolderId()};
   FDECKS.unshift(d);persistFDecks();activeFDeck=d.id;go('flashcards');
 }
-function importSheetUrl(){
-  const url=prompt('Cole o link do Google Sheets (planilha precisa estar pública/compartilhada por link):');
+async function importSheetUrl(){
+  const url=await uiDialog({title:'📊 Importar do Google Sheets',
+    msg:'A planilha precisa estar pública ou compartilhada por link, com 2 colunas: frente | verso.',
+    input:true,placeholder:'https://docs.google.com/spreadsheets/…',okLabel:'Importar'});
   if(!url)return;
   const m=url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if(!m){alert('Link inválido.');return;}
+  if(!m){toast('Link inválido — cole o endereço completo da planilha.','err');return;}
   const gid=(url.match(/[#&?]gid=(\d+)/)||[])[1]||'0';
   const csvUrl=`https://docs.google.com/spreadsheets/d/${m[1]}/export?format=csv&gid=${gid}`;
+  toast('Importando planilha…');
   fetch(csvUrl).then(res=>{if(!res.ok)throw 0;return res.text();})
     .then(t=>buildDeckFromRows(parseCSV(t),'Google Sheets'))
-    .catch(()=>alert('Não consegui acessar. Deixe a planilha pública (Compartilhar → qualquer um com o link), ou baixe como CSV/Excel e importe o arquivo.'));
+    .catch(()=>toast('Não consegui acessar. Deixe a planilha pública (Compartilhar → qualquer um com o link) ou importe como CSV/Excel.','err'));
 }
 
 // Twemoji: converte todo emoji em SVG colorido (visível em qualquer SO/navegador)
@@ -1188,8 +1197,8 @@ function openSimHist(id){
   const h=simHist.find(x=>x.id===id);if(!h)return;
   simCurId=id;simQuiz=h.quiz.map(q=>({...q}));renderSimQuiz();
 }
-function delSimHist(id){
-  if(!confirm('Excluir este simulado do histórico?'))return;
+async function delSimHist(id){
+  if(!await uiConfirm('Excluir simulado','Ele sai do histórico — não pode ser desfeito.','Excluir'))return;
   simHist=simHist.filter(x=>x.id!==id);if(simCurId===id)simCurId=null;
   saveSimHist();renderSimHist();
 }
@@ -1338,22 +1347,22 @@ function renderDrive(){
 }
 function goDrive(id){driveCwd=id;renderDrive();}
 const DRIVE_SUBFOLDERS=['Flashcards','Notas','Simulados'];
-function mkFolder(){
+async function mkFolder(){
   if(driveCwd){toast('Só dá pra criar pastas na raiz','err');return;}
-  const name=(prompt('Nome da pasta:')||'').trim();if(!name)return;
+  const name=((await uiPrompt('Nova pasta','','Ex.: Biologia — 3º bimestre'))||'').trim();if(!name)return;
   const id=uid('d');
   driveFolders.push({id,name,parent:driveCwd});
   DRIVE_SUBFOLDERS.forEach(sn=>driveFolders.push({id:uid('d'),name:sn,parent:id}));
   saveDrive();renderDrive();
 }
-function renameFolder(id){
+async function renameFolder(id){
   const f=driveFolders.find(x=>x.id===id);if(!f)return;
-  const n=(prompt('Renomear pasta:',f.name)||'').trim();if(!n)return;
+  const n=((await uiPrompt('Renomear pasta',f.name))||'').trim();if(!n)return;
   f.name=n;saveDrive();renderDrive();
 }
 async function delFolder(id){
   const f=driveFolders.find(x=>x.id===id);if(!f)return;
-  if(!confirm(`Excluir a pasta "${f.name}" e todo o conteúdo dela?`))return;
+  if(!await uiConfirm(`Excluir "${esc(f.name)}"`,'A pasta e todo o conteúdo dela serão apagados.','Excluir'))return;
   const kill=descendants(id);
   const killedFiles=driveFiles.filter(x=>kill.includes(x.folder||null));
   await Promise.all(killedFiles.map(x=>dvDel(x.id)));
@@ -1364,20 +1373,24 @@ async function delFolder(id){
 async function addDriveFiles(list){
   for(const f of [...list]){
     const id=uid('f');
-    try{await dvPut(id,f);}catch(e){alert('Falha ao salvar '+f.name+' (arquivo muito grande?).');continue;}
+    try{await dvPut(id,f);}catch(e){toast('Falha ao salvar '+f.name+' (arquivo muito grande?)','err');continue;}
     driveFiles.unshift({id,folder:driveCwd,name:f.name,size:f.size,type:f.type,date:new Date().toLocaleDateString('pt-BR')});
   }
   saveDrive();renderDrive();
 }
-async function delDriveFile(id){await dvDel(id);driveFiles=driveFiles.filter(f=>f.id!==id);saveDrive();renderDrive();}
-function renameDriveFile(id){
+async function delDriveFile(id){
   const f=driveFiles.find(x=>x.id===id);if(!f)return;
-  const n=(prompt('Renomear arquivo:',f.name)||'').trim();if(!n)return;
+  if(!await uiConfirm(`Excluir "${esc(f.name)}"`,'O arquivo será removido da Mesa de estudos.','Excluir'))return;
+  await dvDel(id);driveFiles=driveFiles.filter(x=>x.id!==id);saveDrive();renderDrive();
+}
+async function renameDriveFile(id){
+  const f=driveFiles.find(x=>x.id===id);if(!f)return;
+  const n=((await uiPrompt('Renomear arquivo',f.name))||'').trim();if(!n)return;
   f.name=n;saveDrive();renderDrive();
 }
 async function downloadDriveFile(id){
   const f=driveFiles.find(x=>x.id===id);if(!f)return;
-  const b=await dvGet(id);if(!b){alert('Arquivo não encontrado.');return;}
+  const b=await dvGet(id);if(!b){toast('Arquivo não encontrado','err');return;}
   const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=f.name;a.click();
   setTimeout(()=>URL.revokeObjectURL(u),4000);
 }
@@ -1385,7 +1398,7 @@ async function openDriveFile(id){
   const f=driveFiles.find(x=>x.id===id);if(!f)return;
   const t=f.type||'';
   if(!t.startsWith('image')&&!t.includes('pdf')){return downloadDriveFile(id);} // sem preview → baixa
-  const b=await dvGet(id);if(!b){alert('Arquivo não encontrado.');return;}
+  const b=await dvGet(id);if(!b){toast('Arquivo não encontrado','err');return;}
   const u=URL.createObjectURL(b);
   const body=t.startsWith('image')?`<img src="${u}" alt="${esc(f.name)}">`:`<iframe src="${u}"></iframe>`;
   openDvModal(`<h3>${esc(f.name)}</h3>${body}
@@ -1486,7 +1499,7 @@ async function confirmExport(){
   if(nf){const id=uid('d');driveFolders.push({id,name:nf,parent:folder});folder=id;}
   const blob=new File([_expMd||''],name,{type:'text/markdown'});
   const id=uid('f');
-  try{await dvPut(id,blob);}catch(e){alert('Falha ao salvar na Mesa de estudos (arquivo muito grande?).');return;}
+  try{await dvPut(id,blob);}catch(e){toast('Falha ao salvar na Mesa de estudos (arquivo muito grande?)','err');return;}
   driveFiles.unshift({id,folder:folder||null,name,size:blob.size,type:'text/markdown',date:new Date().toLocaleDateString('pt-BR')});
   saveDrive();closeDvModal();
   if(window.cloudSync)cloudSync();

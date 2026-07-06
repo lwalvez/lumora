@@ -349,6 +349,23 @@
       </button>
     </form>
 
+    <form id="resetForm" novalidate style="display:none">
+      <div class="field">
+        <label for="newpass">Nova senha</label>
+        <div class="input-wrap">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+          </svg>
+          <input type="password" id="newpass" placeholder="mínimo 6 caracteres" autocomplete="new-password" required minlength="6" />
+        </div>
+      </div>
+      <button type="submit" class="btn" id="resetBtn">
+        <span>Salvar nova senha</span>
+        <div class="spinner"></div>
+      </button>
+    </form>
+    <p id="msg" style="margin-top:14px;font-size:13px;text-align:center;display:none"></p>
+
     <div class="divider">ou continue com</div>
 
     <div class="socials">
@@ -402,19 +419,31 @@
   const isRecovery = location.hash.includes('type=recovery');
   sb.auth.getSession().then(({data:{session}})=>{ if(session && !isRecovery) enterLumora(); });
 
-  // chegou pelo link "redefinir senha" do e-mail → pede a nova senha
-  sb.auth.onAuthStateChange(async (event) => {
-    if (event !== 'PASSWORD_RECOVERY') return;
-    let np = '';
-    while (true) {
-      np = prompt('Redefinição de senha — digite sua nova senha (mín. 6 caracteres):') || '';
-      if (!np) return; // cancelou
-      if (np.length >= 6) break;
-      alert('A senha precisa ter pelo menos 6 caracteres.');
-    }
+  // ---- Redefinição de senha: tudo dentro do próprio card ----
+  const resetForm = document.getElementById('resetForm');
+  function showReset(){
+    document.querySelector('.head h2').textContent = 'Redefinir senha';
+    document.querySelector('.head span').textContent = 'Crie uma nova senha para sua conta';
+    document.getElementById('form').style.display = 'none';
+    document.querySelector('.divider').style.display = 'none';
+    document.querySelector('.socials').style.display = 'none';
+    document.querySelector('.signup').style.display = 'none';
+    resetForm.style.display = 'block';
+    setTimeout(() => document.getElementById('newpass').focus(), 80);
+  }
+  if (isRecovery) showReset();
+  sb.auth.onAuthStateChange((event) => { if (event === 'PASSWORD_RECOVERY') showReset(); });
+
+  resetForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const np = document.getElementById('newpass').value;
+    if (np.length < 6) { flash('A senha precisa ter pelo menos 6 caracteres.'); return; }
+    const rb = document.getElementById('resetBtn');
+    rb.classList.add('loading'); rb.disabled = true;
     const { error } = await sb.auth.updateUser({ password: np });
+    rb.classList.remove('loading'); rb.disabled = false;
     if (error) { flash(error.message); return; }
-    flash('Senha atualizada com sucesso!', true);
+    flash('Senha atualizada com sucesso! Entrando…', true);
     setTimeout(enterLumora, 900);
   });
 
@@ -425,8 +454,8 @@
 
   function setLoading(on){ btn.classList.toggle('loading',on); btn.disabled=on; }
   function flash(msg, ok){
-    let n=document.getElementById('msg');
-    if(!n){n=document.createElement('p');n.id='msg';n.style.cssText='margin-top:14px;font-size:13px;text-align:center';form.appendChild(n);}
+    const n=document.getElementById('msg');
+    n.style.display='block';
     n.style.color = ok ? '#7dffc4' : '#ff9bb0';
     n.textContent=msg;
   }
