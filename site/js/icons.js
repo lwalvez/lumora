@@ -34,7 +34,7 @@
     ['tag','M3 12V4a1 1 0 0 1 1-1h8l8 8-9 9z','M7.5 7.5h.01'],
     ['save','M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z','M8 4v5h7','M8 14h8v6H8z'],
   ];
-  const sym=P.map(p=>`<symbol id="ic-${p[0]}" viewBox="0 0 24 24">${p.slice(1).map(d=>`<path d="${d}"/>`).join('')}</symbol>`).join('');
+  const sym=P.map(p=>`<symbol id="ic-${p[0]}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p.slice(1).map(d=>`<path d="${d}"/>`).join('')}</symbol>`).join('');
   const svg=document.createElement('div');
   svg.style.cssText='position:absolute;width:0;height:0;overflow:hidden';
   svg.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg"><defs>${sym}</defs></svg>`;

@@ -36,7 +36,7 @@
     ['expand','M8 3H5a2 2 0 0 0-2 2v3','M16 3h3a2 2 0 0 1 2 2v3','M21 16v3a2 2 0 0 1-2 2h-3','M8 21H5a2 2 0 0 1-2-2v-3'],
     ['shrink','M3 8h3a2 2 0 0 0 2-2V3','M21 8h-3a2 2 0 0 1-2-2V3','M16 21v-3a2 2 0 0 1 2-2h3','M3 16h3a2 2 0 0 1 2 2v3'],
   ];
-  const sym=P.map(p=>`<symbol id="ic-${p[0]}" viewBox="0 0 24 24">${p.slice(1).map(d=>`<path d="${d}"/>`).join('')}</symbol>`).join('');
+  const sym=P.map(p=>`<symbol id="ic-${p[0]}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p.slice(1).map(d=>`<path d="${d}"/>`).join('')}</symbol>`).join('');
   const svg=document.createElement('div');
   svg.style.cssText='position:absolute;width:0;height:0;overflow:hidden';
   svg.innerHTML=`<svg xmlns="http://www.w3.org/2000/svg"><defs>${sym}</defs></svg>`;
